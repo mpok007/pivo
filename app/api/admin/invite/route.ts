@@ -26,7 +26,7 @@ export async function POST(req: Request) {
 
     // 1) Pošli invite email (Supabase pošle pozvánku)
     const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: "https://pivo.mpok.cz/login",
+      redirectTo: "https://pivo.mpok.cz/set-password",
     });
 
     if (error) {
