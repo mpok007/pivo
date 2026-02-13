@@ -32,20 +32,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             >
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 <Link href="/">Pivo</Link>
-                {/* admin může mít později stránku „Všichni“ */}
-{role === "admin" && (
-  <>
-    <Link href="/admin">Statistiky</Link>
-    <Link href="/admin/users">Uživatelé</Link>
-  </>
-)}
+
+                {role === "admin" && (
+                  <>
+                    <Link href="/admin">Statistiky</Link>
+                    <Link href="/admin/users">Uživatelé</Link>
+                  </>
+                )}
               </div>
 
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                 <span style={{ opacity: 0.75 }}>
                   Role: <b>{role}</b>
                 </span>
-                <button onClick={signOut}>Odhlásit</button>
+
+                <button onClick={() => signOut()}>Odhlásit</button>
               </div>
             </nav>
 

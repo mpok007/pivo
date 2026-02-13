@@ -15,15 +15,15 @@ const ML = {
   small: 300,
   large: 500,
 };
-
 function tallyMarks(n: number) {
-  // každých 5 = "||||/" (4 čárky přeškrtnuté), zbytek = "|"
   const groups = Math.floor(n / 5);
   const rem = n % 5;
   const parts: string[] = [];
-  for (let i = 0; i < groups; i++) parts.push("||||/");
+
+  for (let i = 0; i < groups; i++) parts.push("卌");
   if (rem > 0) parts.push("|".repeat(rem));
-  return parts.join("  "); // mezery mezi skupinami
+
+  return parts.join(" ");
 }
 
 function crossMarks(n: number) {
