@@ -11,94 +11,7 @@ type Stats = {
   na_large: number;
 };
 
-const ML = {
-  small: 300,
-  large: 500,
-};
-function tallyMarks(n: number) {
-  const groups = Math.floor(n / 5);
-  const rem = n % 5;
-  const parts: string[] = [];
-
-  for (let i = 0; i < groups; i++) parts.push("卌");
-  if (rem > 0) parts.push("|".repeat(rem));
-
-  return parts.join(" ");
-}
-
-function crossMarks(n: number) {
-  // malé = křížky
-  return "× ".repeat(n).trim();
-}
-
-function StatBlock({
-  title,
-  smallCount,
-  largeCount,
-}: {
-  title: string;
-  smallCount: number;
-  largeCount: number;
-}) {
-  const totalMl = smallCount * ML.small + largeCount * ML.large;
-  const totalL = (totalMl / 1000).toFixed(1);
-
-  return (
-    <div
-      className="cardTight"
-      style={{
-        border: "1px solid #e5e5e5",
-        marginTop: 12,
-        display: "grid",
-        gap: 10,
-      }}
-    >
-      <div style={{ fontWeight: 800 }}>{title}</div>
-
-      <div style={{ display: "grid", gap: 6 }}>
-        <div>
-          <b>Velké:</b> {largeCount}{" "}
-          <span style={{ opacity: 0.8 }}>(0,5)</span>
-        </div>
-        <div
-          style={{
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-            fontSize: 18,
-            lineHeight: 1.3,
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            opacity: 0.95,
-          }}
-        >
-          {largeCount > 0 ? tallyMarks(largeCount) : "—"}
-        </div>
-      </div>
-
-      <div style={{ display: "grid", gap: 6 }}>
-        <div>
-          <b>Malé:</b> {smallCount}{" "}
-          <span style={{ opacity: 0.8 }}>(0,3)</span>
-        </div>
-        <div
-          style={{
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-            fontSize: 18,
-            lineHeight: 1.3,
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            opacity: 0.95,
-          }}
-        >
-          {smallCount > 0 ? crossMarks(smallCount) : "—"}
-        </div>
-      </div>
-
-      <div>
-        <b>Celkem:</b> {totalL} L
-      </div>
-    </div>
-  );
-}
+const ML = { small: 300, large: 500 };
 
 export default function HomePage() {
   const { userId } = useAuth(true);
@@ -110,99 +23,90 @@ export default function HomePage() {
     na_large: 0,
   });
 
-  const loadMyStats = async () => {
+  const load = async () => {
     if (!userId) return;
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("drink_entries")
-      .select("kind,size,user_id")
+      .select("kind,size")
       .eq("user_id", userId);
 
-    if (error) {
-      alert("Chyba načtení statistik: " + error.message);
-      return;
+    const map: Stats = {
+      beer_small: 0,
+      beer_large: 0,
+      na_small: 0,
+      na_large: 0,
+    };
+
+    for (const row of data ?? []) {
+      const key = `${row.kind}_${row.size}` as keyof Stats;
+      if (key in map) map[key] += 1;
     }
 
-    const s: Stats = { beer_small: 0, beer_large: 0, na_small: 0, na_large: 0 };
-    for (const r of data ?? []) {
-      const key = `${r.kind}_${r.size}` as keyof Stats;
-      if (key in s) s[key] += 1;
-    }
-    setStats(s);
+    setStats(map);
   };
 
   useEffect(() => {
-    loadMyStats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    load();
   }, [userId]);
 
-  const totalBeerMl = useMemo(
-    () => stats.beer_small * ML.small + stats.beer_large * ML.large,
-    [stats]
-  );
-  const totalNaMl = useMemo(
-    () => stats.na_small * ML.small + stats.na_large * ML.large,
-    [stats]
-  );
-
   const add = async (kind: "beer" | "na", size: "small" | "large") => {
-    if (!userId) return;
-
-    const label =
-      kind === "beer"
-        ? size === "large"
-          ? "Pivo – velké (0,5)"
-          : "Pivo – malé (0,3)"
-        : size === "large"
-        ? "Nealko – velké (0,5)"
-        : "Nealko – malé (0,3)";
-
-    const ok = confirm(`Opravdu přidat: ${label}?`);
+    const ok = confirm("Opravdu přidat záznam?");
     if (!ok) return;
 
-    const { error } = await supabase.from("drink_entries").insert({
+    await supabase.from("drink_entries").insert({
       user_id: userId,
       kind,
       size,
     });
 
-    if (error) return alert("Chyba zápisu: " + error.message);
-    loadMyStats();
+    await load();
   };
 
-  const tileBase: React.CSSProperties = {
-    width: "100%",
-    aspectRatio: "1 / 1",
-    display: "grid",
-    placeItems: "center",
-    fontSize: 18,
-    fontWeight: 800,
-    borderRadius: 14,
-    border: "1px solid rgba(255,255,255,0.14)",
-    boxShadow: "0 8px 30px rgba(0,0,0,0.25)",
-    padding: 10,
-  };
+  const beerLiters = useMemo(() => {
+    return (
+      (stats.beer_small * ML.small + stats.beer_large * ML.large) / 1000
+    ).toFixed(1);
+  }, [stats]);
 
-  const beerStyle: React.CSSProperties = {
-    ...tileBase,
-    background: "#f59e0b", // oranžová
-    color: "#111",
-  };
+  const naLiters = useMemo(() => {
+    return (
+      (stats.na_small * ML.small + stats.na_large * ML.large) / 1000
+    ).toFixed(1);
+  }, [stats]);
 
-  const naStyle: React.CSSProperties = {
-    ...tileBase,
-    background: "#2563eb", // modrá (stejná jako tlačítka)
-    color: "#fff",
-  };
+  const Button = ({
+    label,
+    color,
+    onClick,
+  }: {
+    label: string;
+    color: string;
+    onClick: () => void;
+  }) => (
+    <button
+      onClick={onClick}
+      style={{
+        width: "100%",
+        height: 54,                 // menší výška
+        borderRadius: 14,
+        fontSize: 16,
+        fontWeight: 700,
+        background: color,
+        color: "white",
+        border: "none",
+      }}
+    >
+      {label}
+    </button>
+  );
 
   return (
     <main>
-      <h1 className="h1">Klikni a přičti</h1>
+      <h1 className="h1">Moje statistika</h1>
 
-      {/* ===== PIVO ===== */}
-      <div style={{ marginTop: 14 }}>
-        <div style={{ fontWeight: 900, marginBottom: 10, opacity: 0.9 }}>Pivo</div>
-
+      {/* PIVO */}
+      <div style={{ marginTop: 16, display: "grid", gap: 10 }}>
         <div
           style={{
             display: "grid",
@@ -210,26 +114,25 @@ export default function HomePage() {
             gap: 10,
           }}
         >
-          <button style={beerStyle} onClick={() => add("beer", "large")}>
-            Pivo<br />velké
-          </button>
-
-          <button style={beerStyle} onClick={() => add("beer", "small")}>
-            Pivo<br />malé
-          </button>
+          <Button
+            label="Pivo – velké"
+            color="#ea580c"
+            onClick={() => add("beer", "large")}
+          />
+          <Button
+            label="Pivo – malé"
+            color="#f97316"
+            onClick={() => add("beer", "small")}
+          />
         </div>
 
-        <StatBlock
-          title="Pivo – statistika"
-          largeCount={stats.beer_large}
-          smallCount={stats.beer_small}
-        />
+        <div style={{ fontSize: 14, opacity: 0.85 }}>
+          🍺 {stats.beer_large}×0,5 • {stats.beer_small}×0,3 → <b>{beerLiters} L</b>
+        </div>
       </div>
 
-      {/* ===== NEALKO ===== */}
-      <div style={{ marginTop: 22 }}>
-        <div style={{ fontWeight: 900, marginBottom: 10, opacity: 0.9 }}>Nealko</div>
-
+      {/* NEALKO */}
+      <div style={{ marginTop: 22, display: "grid", gap: 10 }}>
         <div
           style={{
             display: "grid",
@@ -237,35 +140,21 @@ export default function HomePage() {
             gap: 10,
           }}
         >
-          <button style={naStyle} onClick={() => add("na", "large")}>
-            Nealko<br />velké
-          </button>
-
-          <button style={naStyle} onClick={() => add("na", "small")}>
-            Nealko<br />malé
-          </button>
+          <Button
+            label="Nealko – velké"
+            color="#2563eb"
+            onClick={() => add("na", "large")}
+          />
+          <Button
+            label="Nealko – malé"
+            color="#3b82f6"
+            onClick={() => add("na", "small")}
+          />
         </div>
 
-        <StatBlock
-          title="Nealko – statistika"
-          largeCount={stats.na_large}
-          smallCount={stats.na_small}
-        />
-      </div>
-
-      {/* Souhrn dole */}
-      <div
-        className="cardTight"
-        style={{
-          border: "1px solid #e5e5e5",
-          marginTop: 22,
-          display: "grid",
-          gap: 6,
-        }}
-      >
-        <div style={{ fontWeight: 800 }}>Souhrn</div>
-        <div>Pivo celkem: <b>{(totalBeerMl / 1000).toFixed(1)} L</b></div>
-        <div>Nealko celkem: <b>{(totalNaMl / 1000).toFixed(1)} L</b></div>
+        <div style={{ fontSize: 14, opacity: 0.85 }}>
+          🥤 {stats.na_large}×0,5 • {stats.na_small}×0,3 → <b>{naLiters} L</b>
+        </div>
       </div>
     </main>
   );

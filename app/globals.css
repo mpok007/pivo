@@ -273,3 +273,23 @@ select {
     width: auto;
   }
 }
+/* ===== DRINK BUTTONS SIZE TUNING ===== */
+
+/* základní tlačítko pro pivo/nealko */
+.drinkBtn {
+  width: 100%;
+  min-height: 52px;      /* původně cca 100+ */
+  padding: 12px;
+  border-radius: 14px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* ještě menší na mobilu */
+@media (max-width: 640px) {
+  .drinkBtn {
+    min-height: 46px;
+    font-size: 16px;
+    padding: 10px;
+  }
+}
