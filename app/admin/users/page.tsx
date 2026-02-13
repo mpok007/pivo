@@ -20,7 +20,6 @@ export default function AdminUsersPage() {
 
   const loadProfiles = async () => {
     setLoading(true);
-
     const { data, error } = await supabase
       .from("profiles")
       .select("user_id,email,role")
@@ -52,13 +51,8 @@ export default function AdminUsersPage() {
 
     const res = await fetch("/api/admin/invite", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email,
-        role: newRole,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, role: newRole }),
     });
 
     const json = await res.json();
@@ -69,26 +63,40 @@ export default function AdminUsersPage() {
     }
 
     alert("Pozvánka odeslána ✅");
-
     setEmail("");
     setNewRole("user");
     loadProfiles();
   };
 
-  const setRoleForUser = async (
-    userId: string,
-    role: "admin" | "user"
-  ) => {
-    const { error } = await supabase
-      .from("profiles")
-      .update({ role })
-      .eq("user_id", userId);
+  const setRoleForUser = async (userId: string, role: "admin" | "user") => {
+    const { error } = await supabase.from("profiles").update({ role }).eq("user_id", userId);
+    if (error) return alert("Chyba změny role: " + error.message);
+    loadProfiles();
+  };
 
-    if (error) {
-      alert("Chyba změny role: " + error.message);
-      return;
-    }
+  const deleteUser = async (userId: string, email?: string | null) => {
+    const ok1 = confirm(`Opravdu smazat uživatele: ${email ?? userId}?`);
+    if (!ok1) return;
+    const ok2 = confirm("Smažou se i jeho záznamy. Opravdu pokračovat?");
+    if (!ok2) return;
 
+    const { data: sess } = await supabase.auth.getSession();
+    const token = sess.session?.access_token;
+    if (!token) return alert("Chybí session/token. Zkus se odhlásit a přihlásit.");
+
+    const res = await fetch("/api/admin/delete-user", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ user_id: userId }),
+    });
+
+    const json = await res.json();
+    if (!res.ok) return alert("Chyba: " + (json?.error ?? "Neznámá chyba"));
+
+    alert("Uživatel smazán ✅");
     loadProfiles();
   };
 
@@ -96,7 +104,6 @@ export default function AdminUsersPage() {
     <main>
       <h1 className="h1">Admin – Uživatelé</h1>
 
-      {/* ===== Invite ===== */}
       <div
         className="cardTight"
         style={{
@@ -109,18 +116,9 @@ export default function AdminUsersPage() {
       >
         <b>Pozvat nového uživatele</b>
 
-        <input
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
 
-        <select
-          value={newRole}
-          onChange={(e) =>
-            setNewRole(e.target.value as "admin" | "user")
-          }
-        >
+        <select value={newRole} onChange={(e) => setNewRole(e.target.value as any)}>
           <option value="user">User</option>
           <option value="admin">Admin</option>
         </select>
@@ -128,7 +126,6 @@ export default function AdminUsersPage() {
         <button onClick={inviteUser}>Poslat pozvánku</button>
       </div>
 
-      {/* ===== Seznam ===== */}
       <div style={{ marginTop: 24 }}>
         <b>Existující uživatelé</b>
 
@@ -145,31 +142,28 @@ export default function AdminUsersPage() {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  gap: 12,
+                  gap: 10,
                   flexWrap: "wrap",
                 }}
               >
                 <div>
                   <b>{p.email}</b>
+                  <div style={{ opacity: 0.75, fontSize: 12 }}>{p.user_id}</div>
                 </div>
 
-                <div style={{ display: "flex", gap: 6 }}>
-                  <button
-                    disabled={p.role === "user"}
-                    onClick={() =>
-                      setRoleForUser(p.user_id, "user")
-                    }
-                  >
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  <button disabled={p.role === "user"} onClick={() => setRoleForUser(p.user_id, "user")}>
                     User
+                  </button>
+                  <button disabled={p.role === "admin"} onClick={() => setRoleForUser(p.user_id, "admin")}>
+                    Admin
                   </button>
 
                   <button
-                    disabled={p.role === "admin"}
-                    onClick={() =>
-                      setRoleForUser(p.user_id, "admin")
-                    }
+                    onClick={() => deleteUser(p.user_id, p.email)}
+                    style={{ background: "#dc2626" }}
                   >
-                    Admin
+                    Smazat
                   </button>
                 </div>
               </div>
