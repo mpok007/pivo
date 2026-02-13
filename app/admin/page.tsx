@@ -76,15 +76,45 @@ export default function AdminPage() {
     loadAll();
   }, []);
 
+  const resetAll = async () => {
+    const ok1 = confirm(
+      "SMAZAT VŠE? Tímto odstraníš všechny záznamy (pivo/nealko) pro všechny uživatele."
+    );
+    if (!ok1) return;
+
+    const ok2 = confirm("Opravdu opravdu? Tohle nejde vrátit zpět.");
+    if (!ok2) return;
+
+    // Supabase občas nechce delete bez filtru – použijeme bezpečný trik, který smaže vše
+    const { error } = await supabase
+      .from("drink_entries")
+      .delete()
+      .neq("id", "00000000-0000-0000-0000-000000000000");
+
+    if (error) {
+      alert("Chyba při mazání: " + error.message);
+      return;
+    }
+
+    await loadAll();
+    alert("Hotovo. Všechny záznamy byly smazány.");
+  };
+
   if (role !== "admin") {
     return <div className="container">Nemáš oprávnění.</div>;
   }
 
   return (
     <main>
-      <h1 className="h1">Admin – Statistiky</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <h1 className="h1" style={{ margin: 0 }}>Admin – Statistiky</h1>
 
-      {loading && <div>Načítám…</div>}
+        <button onClick={resetAll} style={{ background: "#dc2626" }}>
+          Smazat vše
+        </button>
+      </div>
+
+      {loading && <div style={{ marginTop: 12 }}>Načítám…</div>}
 
       {!loading && (
         <div style={{ display: "grid", gap: 14, marginTop: 16 }}>
@@ -97,13 +127,11 @@ export default function AdminPage() {
             };
 
             const beerL = (
-              (s.beer_small * ML.small + s.beer_large * ML.large) /
-              1000
+              (s.beer_small * ML.small + s.beer_large * ML.large) / 1000
             ).toFixed(1);
 
             const naL = (
-              (s.na_small * ML.small + s.na_large * ML.large) /
-              1000
+              (s.na_small * ML.small + s.na_large * ML.large) / 1000
             ).toFixed(1);
 
             return (
