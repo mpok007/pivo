@@ -16,19 +16,24 @@ export default function AdminUsersPage() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [email, setEmail] = useState("");
   const [newRole, setNewRole] = useState<"admin" | "user">("user");
+  const [loading, setLoading] = useState(true);
 
   const loadProfiles = async () => {
+    setLoading(true);
+
     const { data, error } = await supabase
       .from("profiles")
       .select("user_id,email,role")
       .order("email");
 
     if (error) {
-      alert(error.message);
+      alert("Chyba načtení profilů: " + error.message);
+      setLoading(false);
       return;
     }
 
     setProfiles(data ?? []);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -39,15 +44,31 @@ export default function AdminUsersPage() {
     return <div className="container">Nemáš oprávnění.</div>;
   }
 
-  const createProfile = async () => {
-    if (!email) return alert("Zadej email");
+  const inviteUser = async () => {
+    if (!email) return alert("Zadej email.");
 
-    const { error } = await supabase.rpc("create_profile_by_email", {
-      p_email: email,
-      p_role: newRole,
+    const ok = confirm(`Opravdu poslat pozvánku na: ${email}?`);
+    if (!ok) return;
+
+    const res = await fetch("/api/admin/invite", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        role: newRole,
+      }),
     });
 
-    if (error) return alert(error.message);
+    const json = await res.json();
+
+    if (!res.ok) {
+      alert("Chyba: " + (json?.error ?? "Neznámá chyba"));
+      return;
+    }
+
+    alert("Pozvánka odeslána ✅");
 
     setEmail("");
     setNewRole("user");
@@ -63,7 +84,11 @@ export default function AdminUsersPage() {
       .update({ role })
       .eq("user_id", userId);
 
-    if (error) return alert(error.message);
+    if (error) {
+      alert("Chyba změny role: " + error.message);
+      return;
+    }
+
     loadProfiles();
   };
 
@@ -71,17 +96,18 @@ export default function AdminUsersPage() {
     <main>
       <h1 className="h1">Admin – Uživatelé</h1>
 
+      {/* ===== Invite ===== */}
       <div
         className="cardTight"
         style={{
           border: "1px solid #e5e5e5",
           marginTop: 16,
           display: "grid",
-          gap: 8,
+          gap: 10,
           maxWidth: 520,
         }}
       >
-        <b>Vytvořit profil</b>
+        <b>Pozvat nového uživatele</b>
 
         <input
           placeholder="Email"
@@ -91,49 +117,65 @@ export default function AdminUsersPage() {
 
         <select
           value={newRole}
-          onChange={(e) => setNewRole(e.target.value as any)}
+          onChange={(e) =>
+            setNewRole(e.target.value as "admin" | "user")
+          }
         >
           <option value="user">User</option>
           <option value="admin">Admin</option>
         </select>
 
-        <button onClick={createProfile}>Vytvořit</button>
+        <button onClick={inviteUser}>Poslat pozvánku</button>
       </div>
 
-      <div style={{ marginTop: 20, display: "grid", gap: 10 }}>
-        {profiles.map((p) => (
-          <div
-            key={p.user_id}
-            className="cardTight"
-            style={{
-              border: "1px solid #e5e5e5",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: 12,
-              flexWrap: "wrap",
-            }}
-          >
-            <div>
-              <b>{p.email}</b>
-            </div>
+      {/* ===== Seznam ===== */}
+      <div style={{ marginTop: 24 }}>
+        <b>Existující uživatelé</b>
 
-            <div style={{ display: "flex", gap: 6 }}>
-              <button
-                disabled={p.role === "user"}
-                onClick={() => setRoleForUser(p.user_id, "user")}
+        {loading && <div style={{ marginTop: 10 }}>Načítám…</div>}
+
+        {!loading && (
+          <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+            {profiles.map((p) => (
+              <div
+                key={p.user_id}
+                className="cardTight"
+                style={{
+                  border: "1px solid #e5e5e5",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 12,
+                  flexWrap: "wrap",
+                }}
               >
-                User
-              </button>
-              <button
-                disabled={p.role === "admin"}
-                onClick={() => setRoleForUser(p.user_id, "admin")}
-              >
-                Admin
-              </button>
-            </div>
+                <div>
+                  <b>{p.email}</b>
+                </div>
+
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button
+                    disabled={p.role === "user"}
+                    onClick={() =>
+                      setRoleForUser(p.user_id, "user")
+                    }
+                  >
+                    User
+                  </button>
+
+                  <button
+                    disabled={p.role === "admin"}
+                    onClick={() =>
+                      setRoleForUser(p.user_id, "admin")
+                    }
+                  >
+                    Admin
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     </main>
   );
