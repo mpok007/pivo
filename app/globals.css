@@ -1,8 +1,15 @@
 @import "tailwindcss";
 
+/* ===========================
+   Theme (Next / Tailwind)
+   =========================== */
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Let the browser know we support both schemes */
+  color-scheme: light dark;
 }
 
 @theme inline {
@@ -23,4 +30,246 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ===========================
+   Controls (inputs, selects...)
+   =========================== */
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  background: #ffffff;
+  color: #111111;
+  border: 1px solid #cccccc;
+  border-radius: 10px;
+  padding: 10px;
+  outline: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+
+/* Buttons */
+button {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+
+button:hover {
+  background: #1d4ed8;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Some browsers style <option> separately; keep it readable */
+option {
+  color: #111111;
+  background: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  input,
+  select,
+  textarea {
+    background: #111111;
+    color: #f5f5f5;
+    border-color: #333333;
+  }
+
+  option {
+    color: #f5f5f5;
+    background: #111111;
+  }
+}
+
+/* ===========================
+   Layout helpers
+   =========================== */
+
+.container {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.h1 {
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.formGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 140px 140px 1fr 170px;
+  gap: 10px;
+  align-items: center;
+}
+
+.formRow .full {
+  grid-column: auto;
+}
+
+.transferRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 190px;
+  gap: 10px;
+  align-items: center;
+}
+
+.filterRow {
+  display: grid;
+  grid-template-columns: 1fr 170px;
+  gap: 10px;
+  align-items: center;
+}
+
+.actionsRow {
+  display: flex;
+  gap: 8px;
+}
+
+/* For bet card content to shrink nicely on mobile */
+.betMain {
+  min-width: 0;
+}
+
+/* Optional helper class for cards (used in bets page) */
+.cardTight {
+  border-radius: 12px;
+  padding: 12px;
+}
+
+/* ===========================
+   Mobile tuning
+   =========================== */
+
+@media (max-width: 640px) {
+  /* Overall slightly smaller */
+  body {
+    font-size: 15px;
+  }
+
+  .container {
+    padding: 10px;
+  }
+
+  .h1 {
+    font-size: 20px;
+  }
+
+  /* Controls a bit smaller */
+  input,
+  select,
+  textarea {
+    padding: 7px;
+  }
+
+  button {
+    padding: 8px 10px;
+  }
+
+  /* Stack layouts */
+  .formRow {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .formRow .full {
+    grid-column: 1 / -1;
+  }
+
+  .transferRow {
+    grid-template-columns: 1fr;
+  }
+
+  .filterRow {
+    grid-template-columns: 1fr;
+  }
+
+  /* Keep action buttons compact and side-by-side when possible */
+  .actionsRow {
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .actionsRow button {
+    flex: 1 1 120px;
+  }
+
+  /* Slightly tighter cards */
+  .cardTight {
+    padding: 10px;
+  }
+}
+/* ===== Final mobile Safari alignment fix ===== */
+
+/* Make widths predictable everywhere */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Controls should fill the card width and not overflow */
+input,
+select,
+textarea,
+button {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* iOS/Safari: normalize select rendering to avoid weird padding/overflow */
+select {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: none;
+}
+
+/* Keep cards from “leaking” content sideways */
+.cardTight {
+  overflow: hidden;
+}
+
+/* Make sure grid items can shrink (prevents horizontal overflow) */
+.formRow > *,
+.transferRow > *,
+.filterRow > * {
+  min-width: 0;
+}
+
+/* On desktop, buttons should not be full width by default */
+@media (min-width: 641px) {
+  button {
+    width: auto;
+  }
 }
