@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/lib/useAuth";
 
@@ -10,8 +10,6 @@ type Stats = {
   na_small: number;
   na_large: number;
 };
-
-const ML = { small: 300, large: 500 };
 
 export default function HomePage() {
   const { userId } = useAuth(true);
@@ -63,17 +61,18 @@ export default function HomePage() {
     await load();
   };
 
-  const beerLiters = useMemo(() => {
-    return (
-      (stats.beer_small * ML.small + stats.beer_large * ML.large) / 1000
-    ).toFixed(1);
-  }, [stats]);
+  // vytvoří vizuální čárky (卌 po 5 kusech)
+  const renderTallies = (count: number, symbol: string) => {
+    const groups = Math.floor(count / 5);
+    const rest = count % 5;
 
-  const naLiters = useMemo(() => {
     return (
-      (stats.na_small * ML.small + stats.na_large * ML.large) / 1000
-    ).toFixed(1);
-  }, [stats]);
+      <>
+        {"卌".repeat(groups)}
+        {symbol.repeat(rest)}
+      </>
+    );
+  };
 
   const Button = ({
     label,
@@ -88,7 +87,7 @@ export default function HomePage() {
       onClick={onClick}
       style={{
         width: "100%",
-        height: 54,                 // menší výška
+        height: 54,       // zachováme menší výšku
         borderRadius: 14,
         fontSize: 16,
         fontWeight: 700,
@@ -105,7 +104,7 @@ export default function HomePage() {
     <main>
       <h1 className="h1">Moje statistika</h1>
 
-      {/* PIVO */}
+      {/* ===== PIVO ===== */}
       <div style={{ marginTop: 16, display: "grid", gap: 10 }}>
         <div
           style={{
@@ -126,13 +125,21 @@ export default function HomePage() {
           />
         </div>
 
-        <div style={{ fontSize: 14, opacity: 0.85 }}>
-          🍺 {stats.beer_large}×0,5 • {stats.beer_small}×0,3 → <b>{beerLiters} L</b>
+        <div style={{ fontSize: 14 }}>
+          <div><b>Velké:</b> {stats.beer_large}</div>
+          <div style={{ fontSize: 20, letterSpacing: 2 }}>
+            {renderTallies(stats.beer_large, "|")}
+          </div>
+
+          <div style={{ marginTop: 8 }}><b>Malé:</b> {stats.beer_small}</div>
+          <div style={{ fontSize: 20, letterSpacing: 2 }}>
+            {renderTallies(stats.beer_small, "×")}
+          </div>
         </div>
       </div>
 
-      {/* NEALKO */}
-      <div style={{ marginTop: 22, display: "grid", gap: 10 }}>
+      {/* ===== NEALKO ===== */}
+      <div style={{ marginTop: 24, display: "grid", gap: 10 }}>
         <div
           style={{
             display: "grid",
@@ -152,8 +159,16 @@ export default function HomePage() {
           />
         </div>
 
-        <div style={{ fontSize: 14, opacity: 0.85 }}>
-          🥤 {stats.na_large}×0,5 • {stats.na_small}×0,3 → <b>{naLiters} L</b>
+        <div style={{ fontSize: 14 }}>
+          <div><b>Velké:</b> {stats.na_large}</div>
+          <div style={{ fontSize: 20, letterSpacing: 2 }}>
+            {renderTallies(stats.na_large, "|")}
+          </div>
+
+          <div style={{ marginTop: 8 }}><b>Malé:</b> {stats.na_small}</div>
+          <div style={{ fontSize: 20, letterSpacing: 2 }}>
+            {renderTallies(stats.na_small, "×")}
+          </div>
         </div>
       </div>
     </main>
