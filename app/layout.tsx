@@ -7,13 +7,16 @@ import { useAuth } from "@/lib/useAuth";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isLogin = pathname === "/login";
-  const { loading, role, signOut } = useAuth(!isLogin);
+
+  // veřejné stránky (bez vynucení login)
+  const isPublic = pathname === "/login" || pathname === "/set-password";
+
+  const { loading, role, signOut } = useAuth(!isPublic);
 
   return (
     <html lang="cs">
       <body>
-        {isLogin ? (
+        {isPublic ? (
           <div className="container">{children}</div>
         ) : loading ? (
           <div style={{ padding: 24 }}>Načítám…</div>
@@ -45,7 +48,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <span style={{ opacity: 0.75 }}>
                   Role: <b>{role}</b>
                 </span>
-
                 <button onClick={() => signOut()}>Odhlásit</button>
               </div>
             </nav>
