@@ -104,15 +104,16 @@ export default function AdminUsersPage() {
     <main>
       <h1 className="h1">Admin – Uživatelé</h1>
 
-      <div
-        className="cardTight"
-        style={{
-          border: "1px solid #e5e5e5",
-          marginTop: 16,
-          display: "grid",
-          gap: 10,
-          maxWidth: 520,
-        }}
+      <div     
+className="cardTight"
+style={{
+  border: "1px solid #e5e5e5",
+  padding: 10,
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 10,
+}}
       >
         <b>Pozvat nového uživatele</b>
 
@@ -149,23 +150,37 @@ export default function AdminUsersPage() {
                 <div>
                   <b>{p.email}</b>
                   <div style={{ opacity: 0.75, fontSize: 12 }}>{p.user_id}</div>
-                </div>
+                </div>        
+<div
+  style={{
+    display: "flex",
+    gap: 6,
+    alignItems: "center",
+  }}
+>
+  <button
+    style={{ padding: "6px 10px" }}
+    disabled={p.role === "user"}
+    onClick={() => setRoleForUser(p.user_id, "user")}
+  >
+    User
+  </button>
 
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  <button disabled={p.role === "user"} onClick={() => setRoleForUser(p.user_id, "user")}>
-                    User
-                  </button>
-                  <button disabled={p.role === "admin"} onClick={() => setRoleForUser(p.user_id, "admin")}>
-                    Admin
-                  </button>
+  <button
+    style={{ padding: "6px 10px" }}
+    disabled={p.role === "admin"}
+    onClick={() => setRoleForUser(p.user_id, "admin")}
+  >
+    Admin
+  </button>
 
-                  <button
-                    onClick={() => deleteUser(p.user_id, p.email)}
-                    style={{ background: "#dc2626" }}
-                  >
-                    Smazat
-                  </button>
-                </div>
+  <button
+    style={{ padding: "6px 10px", background: "#dc2626" }}
+    onClick={() => deleteUser(p.user_id, p.email)}
+  >
+    Smazat
+  </button>
+</div>
               </div>
             ))}
           </div>
