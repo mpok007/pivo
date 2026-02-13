@@ -133,15 +133,38 @@ export default function AdminPage() {
       ) : (
         <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
           {profiles.map((p) => {
-            const s = stats[p.user_id] || { beer_small: 0, beer_large: 0, na_small: 0, na_large: 0 };
+            const s =
+              stats[p.user_id] || ({ beer_small: 0, beer_large: 0, na_small: 0, na_large: 0 } as Stats);
 
-            const beerL = (
-              (s.beer_small * ML.small + s.beer_large * ML.large) / 1000
-            ).toFixed(1);
+            const beerL = ((s.beer_small * ML.small + s.beer_large * ML.large) / 1000).toFixed(1);
+            const naL = ((s.na_small * ML.small + s.na_large * ML.large) / 1000).toFixed(1);
 
-            const naL = (
-              (s.na_small * ML.small + s.na_large * ML.large) / 1000
-            ).toFixed(1);
+            const Row = ({
+              label,
+              count,
+              onMinus,
+            }: {
+              label: string;
+              count: number;
+              onMinus: () => Promise<void>;
+            }) => (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>{label}</span>
+
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <b>{count}</b>
+                  <button
+                    style={{ padding: "4px 8px" }}
+                    onClick={async () => {
+                      await onMinus();
+                      await loadAll();
+                    }}
+                  >
+                    −
+                  </button>
+                </div>
+              </div>
+            );
 
             return (
               <div
@@ -169,69 +192,26 @@ export default function AdminPage() {
                     fontSize: 13,
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                    <span>Pivo 0,5</span>
-                    <span>
-                      <b>{s.beer_large}</b>{" "}
-                      <button
-                        onClick={async () => {
-                          await removeOne(p.user_id, "beer", "large");
-                          await loadAll();
-                        }}
-                        style={{ padding: "6px 10px" }}
-                      >
-                        −
-                      </button>
-                    </span>
-                  </div>
-
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                    <span>Pivo 0,3</span>
-                    <span>
-                      <b>{s.beer_small}</b>{" "}
-                      <button
-                        onClick={async () => {
-                          await removeOne(p.user_id, "beer", "small");
-                          await loadAll();
-                        }}
-                        style={{ padding: "6px 10px" }}
-                      >
-                        −
-                      </button>
-                    </span>
-                  </div>
-
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                    <span>Nealko 0,5</span>
-                    <span>
-                      <b>{s.na_large}</b>{" "}
-                      <button
-                        onClick={async () => {
-                          await removeOne(p.user_id, "na", "large");
-                          await loadAll();
-                        }}
-                        style={{ padding: "6px 10px" }}
-                      >
-                        −
-                      </button>
-                    </span>
-                  </div>
-
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                    <span>Nealko 0,3</span>
-                    <span>
-                      <b>{s.na_small}</b>{" "}
-                      <button
-                        onClick={async () => {
-                          await removeOne(p.user_id, "na", "small");
-                          await loadAll();
-                        }}
-                        style={{ padding: "6px 10px" }}
-                      >
-                        −
-                      </button>
-                    </span>
-                  </div>
+                  <Row
+                    label="Pivo 0,5"
+                    count={s.beer_large}
+                    onMinus={() => removeOne(p.user_id, "beer", "large")}
+                  />
+                  <Row
+                    label="Pivo 0,3"
+                    count={s.beer_small}
+                    onMinus={() => removeOne(p.user_id, "beer", "small")}
+                  />
+                  <Row
+                    label="Nealko 0,5"
+                    count={s.na_large}
+                    onMinus={() => removeOne(p.user_id, "na", "large")}
+                  />
+                  <Row
+                    label="Nealko 0,3"
+                    count={s.na_small}
+                    onMinus={() => removeOne(p.user_id, "na", "small")}
+                  />
                 </div>
               </div>
             );
