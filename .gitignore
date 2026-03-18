@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+/app/_Backup
+/app/login/Backup
+/app/api/admin/invite/Backup
+/lib/Backup
+/app/api/admin/delete-user/Backup
+/app/admin/users/Backup
+/app/set-password/Backup
+/app/admin/Backup

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/lib/useAuth";
 
@@ -19,14 +19,48 @@ type Stats = {
 
 const ML = { small: 300, large: 500 };
 
+const EMPTY_STATS: Stats = { beer_small: 0, beer_large: 0, na_small: 0, na_large: 0 };
+
+function calcLitres(s: Stats) {
+  const beerMl = s.beer_small * ML.small + s.beer_large * ML.large;
+  const naMl   = s.na_small  * ML.small + s.na_large  * ML.large;
+  return {
+    beerL: (beerMl / 1000).toFixed(1),
+    naL:   (naMl   / 1000).toFixed(1),
+  };
+}
+
+// Vyzdviženo mimo AdminPage – nevytváří se nová reference při každém renderu
+function StatRow({
+  label,
+  count,
+  onMinus,
+}: {
+  label: string;
+  count: number;
+  onMinus: () => Promise<void>;
+}) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <span>{label}</span>
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <b>{count}</b>
+        <button style={{ padding: "4px 8px" }} onClick={onMinus}>
+          −
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const { role } = useAuth(true);
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [stats, setStats] = useState<Record<string, Stats>>({});
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats]       = useState<Record<string, Stats>>({});
+  const [loading, setLoading]   = useState(true);
 
-  const loadAll = async () => {
+  const loadAll = useCallback(async () => {
     setLoading(true);
 
     const { data: p, error: pErr } = await supabase
@@ -52,9 +86,7 @@ export default function AdminPage() {
 
     const map: Record<string, Stats> = {};
     for (const row of d ?? []) {
-      if (!map[row.user_id]) {
-        map[row.user_id] = { beer_small: 0, beer_large: 0, na_small: 0, na_large: 0 };
-      }
+      if (!map[row.user_id]) map[row.user_id] = { ...EMPTY_STATS };
       const key = `${row.kind}_${row.size}` as keyof Stats;
       if (key in map[row.user_id]) map[row.user_id][key] += 1;
     }
@@ -62,11 +94,11 @@ export default function AdminPage() {
     setProfiles(p ?? []);
     setStats(map);
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     loadAll();
-  }, []);
+  }, [loadAll]); // ✅ žádný eslint-disable – závislost je správně uvedena
 
   const resetAll = async () => {
     const ok1 = confirm("SMAZAT VŠE? Smaže to všechny záznamy pro všechny uživatele.");
@@ -87,17 +119,17 @@ export default function AdminPage() {
 
   const totals = useMemo(() => {
     let beerMl = 0;
-    let naMl = 0;
+    let naMl   = 0;
 
     for (const uid of Object.keys(stats)) {
       const s = stats[uid];
       beerMl += s.beer_small * ML.small + s.beer_large * ML.large;
-      naMl += s.na_small * ML.small + s.na_large * ML.large;
+      naMl   += s.na_small  * ML.small + s.na_large  * ML.large;
     }
 
     return {
       beerL: (beerMl / 1000).toFixed(1),
-      naL: (naMl / 1000).toFixed(1),
+      naL:   (naMl   / 1000).toFixed(1),
     };
   }, [stats]);
 
@@ -133,38 +165,8 @@ export default function AdminPage() {
       ) : (
         <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
           {profiles.map((p) => {
-            const s =
-              stats[p.user_id] || ({ beer_small: 0, beer_large: 0, na_small: 0, na_large: 0 } as Stats);
-
-            const beerL = ((s.beer_small * ML.small + s.beer_large * ML.large) / 1000).toFixed(1);
-            const naL = ((s.na_small * ML.small + s.na_large * ML.large) / 1000).toFixed(1);
-
-            const Row = ({
-              label,
-              count,
-              onMinus,
-            }: {
-              label: string;
-              count: number;
-              onMinus: () => Promise<void>;
-            }) => (
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span>{label}</span>
-
-                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  <b>{count}</b>
-                  <button
-                    style={{ padding: "4px 8px" }}
-                    onClick={async () => {
-                      await onMinus();
-                      await loadAll();
-                    }}
-                  >
-                    −
-                  </button>
-                </div>
-              </div>
-            );
+            const s = stats[p.user_id] ?? EMPTY_STATS;
+            const { beerL, naL } = calcLitres(s);
 
             return (
               <div
@@ -192,25 +194,25 @@ export default function AdminPage() {
                     fontSize: 13,
                   }}
                 >
-                  <Row
+                  <StatRow
                     label="Pivo 0,5"
                     count={s.beer_large}
-                    onMinus={() => removeOne(p.user_id, "beer", "large")}
+                    onMinus={async () => { await removeOne(p.user_id, "beer", "large"); await loadAll(); }}
                   />
-                  <Row
+                  <StatRow
                     label="Pivo 0,3"
                     count={s.beer_small}
-                    onMinus={() => removeOne(p.user_id, "beer", "small")}
+                    onMinus={async () => { await removeOne(p.user_id, "beer", "small"); await loadAll(); }}
                   />
-                  <Row
+                  <StatRow
                     label="Nealko 0,5"
                     count={s.na_large}
-                    onMinus={() => removeOne(p.user_id, "na", "large")}
+                    onMinus={async () => { await removeOne(p.user_id, "na", "large"); await loadAll(); }}
                   />
-                  <Row
+                  <StatRow
                     label="Nealko 0,3"
                     count={s.na_small}
-                    onMinus={() => removeOne(p.user_id, "na", "small")}
+                    onMinus={async () => { await removeOne(p.user_id, "na", "small"); await loadAll(); }}
                   />
                 </div>
               </div>
@@ -242,6 +244,10 @@ async function removeOne(
   if (error) return alert("Chyba: " + error.message);
   if (!data || data.length === 0) return alert("Žádný záznam k odečtení");
 
-  const del = await supabase.from("drink_entries").delete().eq("id", data[0].id);
-  if (del.error) alert("Chyba mazání: " + del.error.message);
+  const { error: delError } = await supabase
+    .from("drink_entries")
+    .delete()
+    .eq("id", data[0].id);
+
+  if (delError) alert("Chyba mazání: " + delError.message);
 }

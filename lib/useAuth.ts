@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 function clearSupabaseStorage() {
@@ -24,10 +24,14 @@ function clearSupabaseStorage() {
 
 export function useAuth(requireLogin: boolean) {
   const [loading, setLoading] = useState(true);
-  const [role, setRole] = useState<string>("user");
+  const [role, setRole] = useState<"admin" | "user">("user");
   const [userId, setUserId] = useState<string | null>(null);
 
-  const load = async () => {
+  // useCallback zajistí stabilní referenci funkce – useEffect ji může
+  // bezpečně zahrnout do dependency array bez nekonečné smyčky
+  const load = useCallback(async () => {
+    setLoading(true);
+
     const { data, error } = await supabase.auth.getSession();
     if (error) {
       // když je session rozbitá, radši ji vyčisti
@@ -47,22 +51,21 @@ export function useAuth(requireLogin: boolean) {
     const uid = session.user.id;
     setUserId(uid);
 
-    const prof = await supabase
+    const { data: profData } = await supabase
       .from("profiles")
       .select("role")
       .eq("user_id", uid)
       .single();
 
-    setRole(prof.data?.role ?? "user");
+    setRole(profData?.role ?? "user");
     setLoading(false);
-  };
+  }, [requireLogin]);
 
   useEffect(() => {
     let mounted = true;
 
     const run = async () => {
       if (!mounted) return;
-      setLoading(true);
       await load();
     };
 
@@ -76,17 +79,12 @@ export function useAuth(requireLogin: boolean) {
       mounted = false;
       sub.subscription.unsubscribe();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requireLogin]);
+  }, [load]); // ✅ žádný eslint-disable – závislost je správně uvedena
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
+      await supabase.auth.signOut();
       // i kdyby signOut vrátil chybu (např. rozbitý refresh token), stejně vyčistíme localStorage
-      if (error) {
-        // volitelně můžeš dát alert, ale většinou stačí vyčistit
-        // alert("Odhlášení: " + error.message);
-      }
     } finally {
       clearSupabaseStorage();
       window.location.replace("/login");

@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+// Načteme env proměnné jednou při startu modulu, ne při každém requestu
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const anonKey     = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !anonKey || !serviceKey) {
+  throw new Error("Chybí Supabase env proměnné (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY).");
+}
+
 export async function POST(req: Request) {
   try {
     const { email, role } = await req.json();
@@ -9,28 +18,48 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Chybí email." }, { status: 400 });
     }
 
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    // 1) ověření volajícího (musí být admin)
+    const authHeader = req.headers.get("authorization") ?? "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
 
-    if (!serviceKey || !url) {
-      return NextResponse.json(
-        { error: "Chybí serverové env proměnné." },
-        { status: 500 }
-      );
+    if (!token) {
+      return NextResponse.json({ error: "Chybí Authorization token." }, { status: 401 });
     }
 
-    // Admin (server) client
-    const admin = createClient(url, serviceKey, {
+    // klient pro ověření JWT (anon key)
+    const client = createClient(supabaseUrl, anonKey, {
       auth: { persistSession: false },
     });
 
-    // 1) Pošli invite email (Supabase pošle pozvánku)
-    const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
+    const { data: userData, error: userErr } = await client.auth.getUser(token);
+    if (userErr || !userData?.user) {
+      return NextResponse.json({ error: "Neplatný token." }, { status: 401 });
+    }
+
+    const callerId = userData.user.id;
+
+    // admin klient (service role)
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { persistSession: false },
+    });
+
+    const { data: prof, error: profErr } = await admin
+      .from("profiles")
+      .select("role")
+      .eq("user_id", callerId)
+      .single();
+
+    if (profErr || prof?.role !== "admin") {
+      return NextResponse.json({ error: "Nemáš oprávnění." }, { status: 403 });
+    }
+
+    // 2) Pošli invite email (Supabase pošle pozvánku)
+    const { data, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
       redirectTo: "https://pivo.mpok.cz/set-password",
     });
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+    if (inviteErr) {
+      return NextResponse.json({ error: inviteErr.message }, { status: 400 });
     }
 
     const userId = data.user?.id;
@@ -38,16 +67,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Nepodařilo se získat user id." }, { status: 500 });
     }
 
-    // 2) Založ profil (role) – service role obchází RLS
+    // 3) Založ profil (role) – service role obchází RLS
     const safeRole = role === "admin" ? "admin" : "user";
-    const { error: pErr } = await admin.from("profiles").upsert({
+    const { error: profileErr } = await admin.from("profiles").upsert({
       user_id: userId,
       email,
       role: safeRole,
     });
 
-    if (pErr) {
-      return NextResponse.json({ error: "Profil: " + pErr.message }, { status: 400 });
+    if (profileErr) {
+      return NextResponse.json({ error: "Profil: " + profileErr.message }, { status: 400 });
     }
 
     return NextResponse.json({ ok: true });

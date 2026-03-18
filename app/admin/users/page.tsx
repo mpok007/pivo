@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/lib/useAuth";
 
@@ -14,11 +14,11 @@ export default function AdminUsersPage() {
   const { role } = useAuth(true);
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [email, setEmail] = useState("");
-  const [newRole, setNewRole] = useState<"admin" | "user">("user");
-  const [loading, setLoading] = useState(true);
+  const [email, setEmail]       = useState("");
+  const [newRole, setNewRole]   = useState<"admin" | "user">("user");
+  const [loading, setLoading]   = useState(true);
 
-  const loadProfiles = async () => {
+  const loadProfiles = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("profiles")
@@ -33,11 +33,11 @@ export default function AdminUsersPage() {
 
     setProfiles(data ?? []);
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     loadProfiles();
-  }, []);
+  }, [loadProfiles]); // ✅ žádný eslint-disable – závislost je správně uvedena
 
   if (role !== "admin") {
     return <div className="container">Nemáš oprávnění.</div>;
@@ -104,22 +104,29 @@ export default function AdminUsersPage() {
     <main>
       <h1 className="h1">Admin – Uživatelé</h1>
 
-      <div     
-className="cardTight"
-style={{
-  border: "1px solid #e5e5e5",
-  padding: 10,
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: 10,
-}}
+      <div
+        className="cardTight"
+        style={{
+          border: "1px solid #e5e5e5",
+          padding: 10,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 10,
+        }}
       >
         <b>Pozvat nového uživatele</b>
 
-        <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
-        <select value={newRole} onChange={(e) => setNewRole(e.target.value as any)}>
+        <select
+          value={newRole}
+          onChange={(e) => setNewRole(e.target.value as "admin" | "user")}
+        >
           <option value="user">User</option>
           <option value="admin">Admin</option>
         </select>
@@ -150,37 +157,32 @@ style={{
                 <div>
                   <b>{p.email}</b>
                   <div style={{ opacity: 0.75, fontSize: 12 }}>{p.user_id}</div>
-                </div>        
-<div
-  style={{
-    display: "flex",
-    gap: 6,
-    alignItems: "center",
-  }}
->
-  <button
-    style={{ padding: "6px 10px" }}
-    disabled={p.role === "user"}
-    onClick={() => setRoleForUser(p.user_id, "user")}
-  >
-    User
-  </button>
+                </div>
 
-  <button
-    style={{ padding: "6px 10px" }}
-    disabled={p.role === "admin"}
-    onClick={() => setRoleForUser(p.user_id, "admin")}
-  >
-    Admin
-  </button>
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <button
+                    style={{ padding: "6px 10px" }}
+                    disabled={p.role === "user"}
+                    onClick={() => setRoleForUser(p.user_id, "user")}
+                  >
+                    User
+                  </button>
 
-  <button
-    style={{ padding: "6px 10px", background: "#dc2626" }}
-    onClick={() => deleteUser(p.user_id, p.email)}
-  >
-    Smazat
-  </button>
-</div>
+                  <button
+                    style={{ padding: "6px 10px" }}
+                    disabled={p.role === "admin"}
+                    onClick={() => setRoleForUser(p.user_id, "admin")}
+                  >
+                    Admin
+                  </button>
+
+                  <button
+                    style={{ padding: "6px 10px", background: "#dc2626" }}
+                    onClick={() => deleteUser(p.user_id, p.email)}
+                  >
+                    Smazat
+                  </button>
+                </div>
               </div>
             ))}
           </div>

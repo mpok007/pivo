@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function SetPasswordPage() {
+  const router = useRouter();
+
   const [loading, setLoading] = useState(true);
-  const [pw1, setPw1] = useState("");
-  const [pw2, setPw2] = useState("");
-  const [msg, setMsg] = useState<string | null>(null);
+  const [pw1, setPw1]         = useState("");
+  const [pw2, setPw2]         = useState("");
+  const [msg, setMsg]         = useState<string | null>(null);
 
   useEffect(() => {
     const run = async () => {
@@ -42,8 +45,13 @@ export default function SetPasswordPage() {
 
     setMsg("Hotovo ✅ Heslo nastaveno. Přesměrovávám…");
     setTimeout(() => {
-      window.location.replace("/");
+      router.replace("/");
     }, 800);
+  };
+
+  // Umožní odeslat formulář klávesou Enter
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") save();
   };
 
   return (
@@ -59,17 +67,21 @@ export default function SetPasswordPage() {
             placeholder="Nové heslo"
             value={pw1}
             onChange={(e) => setPw1(e.target.value)}
+            onKeyDown={onKeyDown}
+            autoComplete="new-password"
           />
           <input
             type="password"
             placeholder="Nové heslo znovu"
             value={pw2}
             onChange={(e) => setPw2(e.target.value)}
+            onKeyDown={onKeyDown}
+            autoComplete="new-password"
           />
 
           <button onClick={save}>Uložit heslo</button>
 
-          {msg ? <div style={{ opacity: 0.85 }}>{msg}</div> : null}
+          {msg && <div style={{ opacity: 0.85 }}>{msg}</div>}
         </div>
       )}
     </main>

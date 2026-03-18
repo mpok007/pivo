@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+// Načteme env proměnné jednou při startu modulu, ne při každém requestu
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const anonKey     = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !anonKey || !serviceKey) {
+  throw new Error("Chybí Supabase env proměnné (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY).");
+}
+
 export async function POST(req: Request) {
   try {
     const { user_id } = await req.json();
@@ -9,19 +18,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Chybí user_id." }, { status: 400 });
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !anonKey || !serviceKey) {
-      return NextResponse.json(
-        { error: "Chybí env proměnné na serveru." },
-        { status: 500 }
-      );
-    }
-
     // 1) ověření volajícího (musí být admin)
-    const authHeader = req.headers.get("authorization") || "";
+    const authHeader = req.headers.get("authorization") ?? "";
     const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
 
     if (!token) {
@@ -64,20 +62,28 @@ export async function POST(req: Request) {
     }
 
     // 2) smaž data uživatele (nejdřív závislé tabulky)
-    const delEntries = await admin.from("drink_entries").delete().eq("user_id", user_id);
-    if (delEntries.error) {
-      return NextResponse.json({ error: "Záznamy: " + delEntries.error.message }, { status: 400 });
+    const { error: entriesErr } = await admin
+      .from("drink_entries")
+      .delete()
+      .eq("user_id", user_id);
+
+    if (entriesErr) {
+      return NextResponse.json({ error: "Záznamy: " + entriesErr.message }, { status: 400 });
     }
 
-    const delProfile = await admin.from("profiles").delete().eq("user_id", user_id);
-    if (delProfile.error) {
-      return NextResponse.json({ error: "Profil: " + delProfile.error.message }, { status: 400 });
+    const { error: profileErr } = await admin
+      .from("profiles")
+      .delete()
+      .eq("user_id", user_id);
+
+    if (profileErr) {
+      return NextResponse.json({ error: "Profil: " + profileErr.message }, { status: 400 });
     }
 
     // 3) smaž auth uživatele
-    const delAuth = await admin.auth.admin.deleteUser(user_id);
-    if (delAuth.error) {
-      return NextResponse.json({ error: "Auth: " + delAuth.error.message }, { status: 400 });
+    const { error: authErr } = await admin.auth.admin.deleteUser(user_id);
+    if (authErr) {
+      return NextResponse.json({ error: "Auth: " + authErr.message }, { status: 400 });
     }
 
     return NextResponse.json({ ok: true });

@@ -33,6 +33,18 @@ body {
 }
 
 /* ===========================
+   Box-sizing reset
+   (musí být co nejdříve, aby
+   ovlivnil všechny elementy)
+   =========================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* ===========================
    Controls (inputs, selects...)
    =========================== */
 
@@ -41,6 +53,8 @@ select,
 textarea,
 button {
   font: inherit;
+  width: 100%;
+  max-width: 100%;
 }
 
 input,
@@ -59,6 +73,13 @@ select:focus,
 textarea:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+
+/* iOS/Safari: normalize select rendering to avoid weird padding/overflow */
+select {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: none;
 }
 
 /* Buttons */
@@ -134,6 +155,12 @@ option {
   align-items: center;
 }
 
+.formRow > *,
+.transferRow > *,
+.filterRow > * {
+  min-width: 0;
+}
+
 .formRow .full {
   grid-column: auto;
 }
@@ -162,10 +189,31 @@ option {
   min-width: 0;
 }
 
-/* Optional helper class for cards (used in bets page) */
+/* Cards */
 .cardTight {
   border-radius: 12px;
   padding: 12px;
+  overflow: hidden;
+}
+
+/* Drink buttons (pivo / nealko) */
+.drinkBtn {
+  width: 100%;
+  min-height: 52px;
+  padding: 12px;
+  border-radius: 14px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* ===========================
+   Desktop overrides
+   =========================== */
+
+@media (min-width: 641px) {
+  button {
+    width: auto;
+  }
 }
 
 /* ===========================
@@ -173,7 +221,6 @@ option {
    =========================== */
 
 @media (max-width: 640px) {
-  /* Overall slightly smaller */
   body {
     font-size: 15px;
   }
@@ -186,7 +233,6 @@ option {
     font-size: 20px;
   }
 
-  /* Controls a bit smaller */
   input,
   select,
   textarea {
@@ -197,7 +243,6 @@ option {
     padding: 8px 10px;
   }
 
-  /* Stack layouts */
   .formRow {
     grid-template-columns: 1fr 1fr;
   }
@@ -214,7 +259,6 @@ option {
     grid-template-columns: 1fr;
   }
 
-  /* Keep action buttons compact and side-by-side when possible */
   .actionsRow {
     flex-direction: row;
     flex-wrap: wrap;
@@ -225,68 +269,10 @@ option {
     flex: 1 1 120px;
   }
 
-  /* Slightly tighter cards */
   .cardTight {
     padding: 10px;
   }
-}
-/* ===== Final mobile Safari alignment fix ===== */
 
-/* Make widths predictable everywhere */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-/* Controls should fill the card width and not overflow */
-input,
-select,
-textarea,
-button {
-  width: 100%;
-  max-width: 100%;
-}
-
-/* iOS/Safari: normalize select rendering to avoid weird padding/overflow */
-select {
-  -webkit-appearance: none;
-  appearance: none;
-  background-image: none;
-}
-
-/* Keep cards from “leaking” content sideways */
-.cardTight {
-  overflow: hidden;
-}
-
-/* Make sure grid items can shrink (prevents horizontal overflow) */
-.formRow > *,
-.transferRow > *,
-.filterRow > * {
-  min-width: 0;
-}
-
-/* On desktop, buttons should not be full width by default */
-@media (min-width: 641px) {
-  button {
-    width: auto;
-  }
-}
-/* ===== DRINK BUTTONS SIZE TUNING ===== */
-
-/* základní tlačítko pro pivo/nealko */
-.drinkBtn {
-  width: 100%;
-  min-height: 52px;      /* původně cca 100+ */
-  padding: 12px;
-  border-radius: 14px;
-  font-size: 18px;
-  font-weight: 700;
-}
-
-/* ještě menší na mobilu */
-@media (max-width: 640px) {
   .drinkBtn {
     min-height: 46px;
     font-size: 16px;
