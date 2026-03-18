@@ -10,6 +10,12 @@ if (!supabaseUrl || !anonKey || !serviceKey) {
   throw new Error("Chybí Supabase env proměnné (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY).");
 }
 
+// Po kontrole výše TypeScript stále považuje proměnné za `string | undefined`.
+// Přetypujeme je na `string`, aby to prošlo type checkerem.
+const _supabaseUrl = supabaseUrl as string;
+const _anonKey     = anonKey as string;
+const _serviceKey  = serviceKey as string;
+
 export async function POST(req: Request) {
   try {
     const { email, role } = await req.json();
@@ -27,7 +33,7 @@ export async function POST(req: Request) {
     }
 
     // klient pro ověření JWT (anon key)
-    const client = createClient(supabaseUrl, anonKey, {
+    const client = createClient(_supabaseUrl, _anonKey, {
       auth: { persistSession: false },
     });
 
@@ -39,7 +45,7 @@ export async function POST(req: Request) {
     const callerId = userData.user.id;
 
     // admin klient (service role)
-    const admin = createClient(supabaseUrl, serviceKey, {
+    const admin = createClient(_supabaseUrl, _serviceKey, {
       auth: { persistSession: false },
     });
 
