@@ -20,26 +20,26 @@ const EMPTY_STATS: Stats = {
 
 const BEER_MILESTONES: string[] = [
   "Testuješ kvalitu, nebo jen vytrvalost? 🧐",
+  "Ty to bereš zodpovědně, aby pivo nezteplalo, viď? 🌡️",
   "Ty máš dneska permanentku na výčep? 🎫",
   "Klid, nech něco i pro ostatní, hrdino! 🦸",
-  "Ty to bereš zodpovědně, aby pivo nezteplalo, viď? 🌡️",
-  "Ty už to pivo nepiješ, Ty ho likviduješ! 💥",
-  "Cože už tolik? To už pojedeme podle sudů ne? 🛢️",
   "Ty už si zasloužíš věrnostní kartu s fotkou. 📸",
   "Ty nepiješ na žízeň, Ty to máš jako životní styl. 😎",
+  "Ty už to pivo nepiješ, Ty ho likviduješ! 💥",
+  "Kámo, ty jsi důvod, proč zdražuje pivo! 💰",
+  "Cože už 18.? To už pojedeme podle sudů ne? 🛢️",
   "Jestli dáš ještě jedno, tak snad umřeš! ☠️",
 ];
 
 const NA_MILESTONES: string[] = [
-  "Nealko? Takže jen simulace zábavy? 🎭",
-  "Kámo, tohle je pivo na zkoušku? 📝",
   "To máš pivo, nebo jen ochucenou výmluvu? 🤔",
+  "Kámo, tohle je pivo na zkoušku? 📝",
+  "To už si rovnou dej vodu a nehraj si na hrdinu. 💧",
   "Nealko pivo – když chceš pít, ale zároveň nechceš pít. 🤷",
   "To je jak kafe bez kofeinu… proč vůbec? ☕",
   "To piješ dobrovolně, nebo jsi něco provedl? 👮",
+  "Nealko? Takže jen simulace zábavy? 🎭",
   "Ty sis dal pivo, co nedokončilo školu! 🎓",
-  "Nealko? Tak to jsi dneska jen v demoverzi. 💻",
-  "To už si rovnou dej vodu a nehraj si na hrdinu. 💧",
 ];
 
 const GLASS_STROKE = "rgba(180,180,180,0.9)";
