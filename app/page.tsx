@@ -47,13 +47,13 @@ const GLASS_STROKE = "rgba(180,180,180,0.9)";
 // ─── SVG builders ─────────────────────────────────────────────────────────────
 
 function buildMugSVG(id: string, fillPct: number): string {
-  const w = 48, h = 58;
-  const glassL = 3, glassR = w - 10, glassT = 4, glassB = h - 3;
-  const innerL = glassL + 3, innerR = glassR - 3;
-  const innerT = glassT + 3, innerB = glassB - 3;
+  const w = 36, h = 44;
+  const glassL = 2, glassR = w - 8, glassT = 3, glassB = h - 2;
+  const innerL = glassL + 2, innerR = glassR - 2;
+  const innerT = glassT + 2, innerB = glassB - 2;
   const innerH = innerB - innerT;
   const liquidH = innerH * fillPct, liquidT = innerB - liquidH;
-  const foamH = fillPct > 0.05 ? Math.min(9, liquidH * 0.25) : 0;
+  const foamH = fillPct > 0.05 ? Math.min(7, liquidH * 0.25) : 0;
   const beerT = liquidT + foamH;
   const foam = "#FEF3C7", beer = "#D97706";
 
@@ -62,7 +62,7 @@ function buildMugSVG(id: string, fillPct: number): string {
   if (fillPct > 0.02) {
     html += `<rect x="${innerL}" y="${beerT}" width="${innerR - innerL}" height="${innerB - beerT}" fill="${beer}" clip-path="url(#clip-${id})"/>`;
     if (fillPct > 0.15) {
-      [[0.25, 0.7, 1.5], [0.55, 0.5, 1], [0.4, 0.82, 1]].forEach(([rx, ry, rr]) => {
+      [[0.25, 0.7, 1.2], [0.55, 0.5, 0.8], [0.4, 0.82, 0.8]].forEach(([rx, ry, rr]) => {
         html += `<circle cx="${innerL + (innerR - innerL) * rx}" cy="${beerT + (innerB - beerT) * ry}" r="${rr}" fill="rgba(255,255,255,0.5)" clip-path="url(#clip-${id})"/>`;
       });
     }
@@ -77,30 +77,30 @@ function buildMugSVG(id: string, fillPct: number): string {
       fp += ` L ${innerR} ${liquidT + foamH} Z`;
       html += `<path d="${fp}" fill="${foam}" clip-path="url(#clip-${id})"/>`;
       for (let i = 0; i < 3; i++)
-        html += `<circle cx="${innerL + fw * (0.18 + i * 0.3)}" cy="${liquidT + foamH * 0.4}" r="2" fill="rgba(255,255,255,0.8)" clip-path="url(#clip-${id})"/>`;
+        html += `<circle cx="${innerL + fw * (0.18 + i * 0.3)}" cy="${liquidT + foamH * 0.4}" r="1.5" fill="rgba(255,255,255,0.8)" clip-path="url(#clip-${id})"/>`;
     }
   }
 
-  html += `<rect x="${glassL}" y="${glassT}" width="${glassR - glassL}" height="${glassB - glassT}" rx="4" fill="none" stroke="${GLASS_STROKE}" stroke-width="2"/>`;
-  html += `<path d="M ${glassR - 1} ${glassT + 10} C ${w + 2} ${glassT + 10} ${w + 2} ${glassB - 12} ${glassR - 1} ${glassB - 12}" fill="none" stroke="${GLASS_STROKE}" stroke-width="2.5"/>`;
-  html += `<line x1="${glassL + 5}" y1="${glassT + 5}" x2="${glassL + 3}" y2="${glassB - 8}" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linecap="round"/>`;
+  html += `<rect x="${glassL}" y="${glassT}" width="${glassR - glassL}" height="${glassB - glassT}" rx="3" fill="none" stroke="${GLASS_STROKE}" stroke-width="1.5"/>`;
+  html += `<path d="M ${glassR - 1} ${glassT + 7} C ${w + 1} ${glassT + 7} ${w + 1} ${glassB - 9} ${glassR - 1} ${glassB - 9}" fill="none" stroke="${GLASS_STROKE}" stroke-width="2"/>`;
+  html += `<line x1="${glassL + 4}" y1="${glassT + 4}" x2="${glassL + 2}" y2="${glassB - 6}" stroke="rgba(255,255,255,0.5)" stroke-width="1.2" stroke-linecap="round"/>`;
   return html;
 }
 
 function buildStemSVG(id: string, fillPct: number): string {
-  const w = 40, h = 58;
-  const bowlTL = 3, bowlTR = w - 3, bowlBL = 12, bowlBR = w - 12, bowlT = 3, bowlB = 36;
-  const innerTL = bowlTL + 3, innerTR = bowlTR - 3, innerBL = bowlBL + 2, innerBR = bowlBR - 2;
-  const innerT = bowlT + 3, innerB = bowlB - 2, innerH = innerB - innerT;
+  const w = 30, h = 44;
+  const bowlTL = 2, bowlTR = w - 2, bowlBL = 9, bowlBR = w - 9, bowlT = 2, bowlB = 28;
+  const innerTL = bowlTL + 2, innerTR = bowlTR - 2, innerBL = bowlBL + 1, innerBR = bowlBR - 1;
+  const innerT = bowlT + 2, innerB = bowlB - 1, innerH = innerB - innerT;
   const liquidH = innerH * fillPct, liquidT = innerB - liquidH;
-  const foamH = fillPct > 0.05 ? Math.min(8, liquidH * 0.25) : 0, beerT = liquidT + foamH;
+  const foamH = fillPct > 0.05 ? Math.min(6, liquidH * 0.25) : 0, beerT = liquidT + foamH;
   const foam = "#FEF3C7", beer = "#D97706";
   const clipPts = `${innerTL},${innerT} ${innerTR},${innerT} ${innerBR},${innerB} ${innerBL},${innerB}`;
   const totalH = bowlB - bowlT;
 
   function xAtY(y: number, isLeft: boolean) {
     const t = (y - bowlT) / totalH;
-    return isLeft ? bowlTL + (bowlBL - bowlTL) * t + 3 : bowlTR + (bowlBR - bowlTR) * t - 3;
+    return isLeft ? bowlTL + (bowlBL - bowlTL) * t + 2 : bowlTR + (bowlBR - bowlTR) * t - 2;
   }
 
   let html = `<defs><clipPath id="clip-${id}"><polygon points="${clipPts}"/></clipPath></defs>`;
@@ -109,7 +109,7 @@ function buildStemSVG(id: string, fillPct: number): string {
     const bTL = xAtY(beerT, true), bTR = xAtY(beerT, false);
     html += `<polygon points="${bTL},${beerT} ${bTR},${beerT} ${innerBR},${innerB} ${innerBL},${innerB}" fill="${beer}" clip-path="url(#clip-${id})"/>`;
     if (fillPct > 0.15) {
-      [[0.3, 0.65, 1.2], [0.6, 0.5, 1], [0.45, 0.8, 1]].forEach(([rx, ry, rr]) => {
+      [[0.3, 0.65, 1.0], [0.6, 0.5, 0.8], [0.45, 0.8, 0.8]].forEach(([rx, ry, rr]) => {
         html += `<circle cx="${innerBL + (innerBR - innerBL) * rx}" cy="${beerT + (innerB - beerT) * ry}" r="${rr}" fill="rgba(255,255,255,0.5)" clip-path="url(#clip-${id})"/>`;
       });
     }
@@ -124,15 +124,15 @@ function buildStemSVG(id: string, fillPct: number): string {
       fp += ` L ${fTR} ${liquidT + foamH} Z`;
       html += `<path d="${fp}" fill="${foam}" clip-path="url(#clip-${id})"/>`;
       for (let i = 0; i < 3; i++)
-        html += `<circle cx="${fTL + fw * (0.15 + i * 0.32)}" cy="${liquidT + foamH * 0.4}" r="1.8" fill="rgba(255,255,255,0.8)" clip-path="url(#clip-${id})"/>`;
+        html += `<circle cx="${fTL + fw * (0.15 + i * 0.32)}" cy="${liquidT + foamH * 0.4}" r="1.2" fill="rgba(255,255,255,0.8)" clip-path="url(#clip-${id})"/>`;
     }
   }
 
-  html += `<polygon points="${bowlTL},${bowlT} ${bowlTR},${bowlT} ${bowlBR},${bowlB} ${bowlBL},${bowlB}" fill="none" stroke="${GLASS_STROKE}" stroke-width="2"/>`;
+  html += `<polygon points="${bowlTL},${bowlT} ${bowlTR},${bowlT} ${bowlBR},${bowlB} ${bowlBL},${bowlB}" fill="none" stroke="${GLASS_STROKE}" stroke-width="1.5"/>`;
   const stemX = w / 2;
-  html += `<line x1="${stemX}" y1="${bowlB}" x2="${stemX}" y2="${h - 5}" stroke="${GLASS_STROKE}" stroke-width="3" stroke-linecap="round"/>`;
-  html += `<ellipse cx="${stemX}" cy="${h - 5}" rx="9" ry="2.5" fill="none" stroke="${GLASS_STROKE}" stroke-width="2"/>`;
-  html += `<line x1="${bowlTL + 5}" y1="${bowlT + 4}" x2="${bowlBL + 3}" y2="${bowlB - 6}" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linecap="round"/>`;
+  html += `<line x1="${stemX}" y1="${bowlB}" x2="${stemX}" y2="${h - 4}" stroke="${GLASS_STROKE}" stroke-width="2.5" stroke-linecap="round"/>`;
+  html += `<ellipse cx="${stemX}" cy="${h - 4}" rx="7" ry="2" fill="none" stroke="${GLASS_STROKE}" stroke-width="1.5"/>`;
+  html += `<line x1="${bowlTL + 4}" y1="${bowlT + 3}" x2="${bowlBL + 2}" y2="${bowlB - 4}" stroke="rgba(255,255,255,0.5)" stroke-width="1.2" stroke-linecap="round"/>`;
   return html;
 }
 
@@ -154,8 +154,8 @@ function GlassButton({
   const rafRef = useRef<number | null>(null);
   const fillRef = useRef(0);
 
-  const svgW = type === "mug" ? 48 : 40;
-  const svgH = 58;
+  const svgW = type === "mug" ? 36 : 30;
+  const svgH = 44;
   const buildSVG = type === "mug" ? buildMugSVG : buildStemSVG;
   const idA = `${id}-a`, idB = `${id}-b`;
 
@@ -196,11 +196,11 @@ function GlassButton({
 
   return (
     <button onClick={handleClick} style={{
-      border: `2px solid ${color}`, borderRadius: 16, padding: "18px 12px 14px",
+      border: `2px solid ${color}`, borderRadius: 14, padding: "12px 10px 10px",
       cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center",
-      gap: 6, background: "transparent", color, flex: 1, transition: "transform 0.1s ease",
+      gap: 4, background: "transparent", color, flex: 1, transition: "transform 0.1s ease",
     }}>
-      <div style={{ height: 60, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 4 }}>
+      <div style={{ height: 46, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 4 }}>
         <svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`}
           dangerouslySetInnerHTML={{ __html: buildSVG(idA, waiting ? 1.0 : fillPct) }} />
         {newVisible && (
@@ -209,8 +209,8 @@ function GlassButton({
             dangerouslySetInnerHTML={{ __html: buildSVG(idB, newFill) }} />
         )}
       </div>
-      <span style={{ fontSize: 14, fontWeight: 700 }}>{label}</span>
-      <span style={{ fontSize: 11, opacity: 0.6 }}>{sublabel}</span>
+      <span style={{ fontSize: 13, fontWeight: 700 }}>{label}</span>
+      <span style={{ fontSize: 10, opacity: 0.6 }}>{sublabel}</span>
     </button>
   );
 }
@@ -222,21 +222,38 @@ function renderTallies(count: number, symbol: string) {
   return (<>{"卌".repeat(groups)}{symbol.repeat(rest)}</>);
 }
 
-function StatCard({ label, value, symbol }: { label: string; value: number; symbol: string }) {
+function StatRow({ leftLabel, leftValue, leftSymbol, rightLabel, rightValue, rightSymbol }: {
+  leftLabel: string; leftValue: number; leftSymbol: string;
+  rightLabel: string; rightValue: number; rightSymbol: string;
+}) {
   return (
-    <div style={{ background: "var(--color-background-secondary)", borderRadius: 8, padding: "10px 14px", border: "0.5px solid var(--color-border-tertiary)" }}>
-      <div style={{ fontSize: 11, color: "var(--color-text-secondary)", marginBottom: 2 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 500, color: "var(--color-text-primary)", lineHeight: 1.2 }}>{value}</div>
-      <div style={{ fontSize: 13, color: "var(--color-text-tertiary)", marginTop: 2, letterSpacing: 2 }}>
-        {value > 0 ? renderTallies(value, symbol) : "–"}
-      </div>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+      {[{ label: leftLabel, value: leftValue, symbol: leftSymbol },
+        { label: rightLabel, value: rightValue, symbol: rightSymbol }].map(({ label, value, symbol }) => (
+        <div key={label} style={{
+          background: "var(--color-background-secondary)", borderRadius: 8,
+          padding: "8px 12px", border: "0.5px solid var(--color-border-tertiary)",
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          <div style={{ fontSize: 20, fontWeight: 500, color: "var(--color-text-primary)", minWidth: 24 }}>{value}</div>
+          <div>
+            <div style={{ fontSize: 10, color: "var(--color-text-secondary)" }}>{label}</div>
+            <div style={{ fontSize: 12, color: "var(--color-text-tertiary)", letterSpacing: 2 }}>
+              {value > 0 ? renderTallies(value, symbol) : "–"}
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, color: "var(--color-text-primary)", marginBottom: 10 }}>
+    <div style={{
+      textAlign: "center", fontSize: 16, fontWeight: 700,
+      color: "var(--color-text-primary)", marginBottom: 6,
+    }}>
       {children}
     </div>
   );
@@ -291,34 +308,34 @@ export default function HomePage() {
   return (
     <main>
       <style>{`@keyframes fadeInGlass { from { opacity: 0; transform: translateY(-6px) scale(0.9); } to { opacity: 1; transform: none; } }`}</style>
-      <h1 className="h1">Moje statistika</h1>
+      <h1 className="h1" style={{ marginBottom: 10 }}>Moje statistika</h1>
 
       {/* ===== PIVO ===== */}
-      <div style={{ marginTop: 16, display: "grid", gap: 10 }}>
+      <div style={{ display: "grid", gap: 6 }}>
         <SectionHeading>🍺 Pivo</SectionHeading>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 8 }}>
           <GlassButton id="gl-beer-large" type="mug"  color="#EA580C" label="Velké" sublabel="0,5 l" onAdd={() => add("beer", "large")} />
           <GlassButton id="gl-beer-small" type="stem" color="#F97316" label="Malé"  sublabel="0,3 l" onAdd={() => add("beer", "small")} />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-          <StatCard label="Velká piva" value={stats.beer_large} symbol="|" />
-          <StatCard label="Malá piva"  value={stats.beer_small} symbol="×" />
-        </div>
+        <StatRow
+          leftLabel="Velká piva"  leftValue={stats.beer_large}  leftSymbol="|"
+          rightLabel="Malá piva"  rightValue={stats.beer_small} rightSymbol="×"
+        />
       </div>
 
       {/* ===== NEALKO ===== */}
-      <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "20px 0 16px" }} />
+      <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "10px 0" }} />
 
-      <div style={{ display: "grid", gap: 10 }}>
+      <div style={{ display: "grid", gap: 6 }}>
         <SectionHeading>🥤 Nealko</SectionHeading>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 8 }}>
           <GlassButton id="gl-na-large" type="mug"  color="#2563EB" label="Velké" sublabel="0,5 l" onAdd={() => add("na", "large")} />
           <GlassButton id="gl-na-small" type="stem" color="#3B82F6" label="Malé"  sublabel="0,3 l" onAdd={() => add("na", "small")} />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-          <StatCard label="Velká nealka" value={stats.na_large} symbol="|" />
-          <StatCard label="Malá nealka"  value={stats.na_small} symbol="×" />
-        </div>
+        <StatRow
+          leftLabel="Velká nealka"  leftValue={stats.na_large}  leftSymbol="|"
+          rightLabel="Malá nealka"  rightValue={stats.na_small} rightSymbol="×"
+        />
       </div>
     </main>
   );
