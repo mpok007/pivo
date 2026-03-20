@@ -32,7 +32,7 @@ const MILESTONES: string[] = [
 
 // ─── SVG builders ─────────────────────────────────────────────────────────────
 
-function buildMugSVG(id: string, fillPct: number): string {
+function buildMugSVG(id: string, fillPct: number, color: string): string {
   const w = 48, h = 58;
   const glassL = 3, glassR = w - 10, glassT = 4, glassB = h - 3;
   const innerL = glassL + 3, innerR = glassR - 3;
@@ -42,16 +42,18 @@ function buildMugSVG(id: string, fillPct: number): string {
   const liquidT = innerB - liquidH;
   const foamH = fillPct > 0.05 ? Math.min(9, liquidH * 0.25) : 0;
   const beerT = liquidT + foamH;
-  const shine = "rgba(255,255,255,0.55)", foam = "#FEF3C7", beer = "#D97706";
+  const foam = "#FEF3C7", beer = "#D97706";
 
   let html = `<defs><clipPath id="clip-${id}"><rect x="${innerL}" y="${innerT}" width="${innerR - innerL}" height="${innerH}"/></clipPath></defs>`;
-  html += `<rect x="${glassL}" y="${glassT}" width="${glassR - glassL}" height="${glassB - glassT}" rx="4" fill="rgba(255,255,255,0.1)" stroke="${shine}" stroke-width="1.5"/>`;
+
+  // Výplň sklenice průhledná
+  html += `<rect x="${glassL}" y="${glassT}" width="${glassR - glassL}" height="${glassB - glassT}" rx="4" fill="rgba(0,0,0,0.08)" stroke="${color}" stroke-width="2"/>`;
 
   if (fillPct > 0.02) {
     html += `<rect x="${innerL}" y="${beerT}" width="${innerR - innerL}" height="${innerB - beerT}" fill="${beer}" clip-path="url(#clip-${id})"/>`;
     if (fillPct > 0.15) {
       [[0.25, 0.7, 1.5], [0.55, 0.5, 1], [0.4, 0.82, 1]].forEach(([rx, ry, rr]) => {
-        html += `<circle cx="${innerL + (innerR - innerL) * rx}" cy="${beerT + (innerB - beerT) * ry}" r="${rr}" fill="rgba(255,255,255,0.4)" clip-path="url(#clip-${id})"/>`;
+        html += `<circle cx="${innerL + (innerR - innerL) * rx}" cy="${beerT + (innerB - beerT) * ry}" r="${rr}" fill="rgba(255,255,255,0.5)" clip-path="url(#clip-${id})"/>`;
       });
     }
     if (foamH > 0) {
@@ -65,23 +67,24 @@ function buildMugSVG(id: string, fillPct: number): string {
       fp += ` L ${innerR} ${liquidT + foamH} Z`;
       html += `<path d="${fp}" fill="${foam}" clip-path="url(#clip-${id})"/>`;
       for (let i = 0; i < 3; i++)
-        html += `<circle cx="${innerL + fw * (0.18 + i * 0.3)}" cy="${liquidT + foamH * 0.4}" r="2" fill="rgba(255,255,255,0.65)" clip-path="url(#clip-${id})"/>`;
+        html += `<circle cx="${innerL + fw * (0.18 + i * 0.3)}" cy="${liquidT + foamH * 0.4}" r="2" fill="rgba(255,255,255,0.8)" clip-path="url(#clip-${id})"/>`;
     }
   }
 
-  html += `<line x1="${glassL + 5}" y1="${glassT + 5}" x2="${glassL + 3}" y2="${glassB - 8}" stroke="${shine}" stroke-width="1.8" stroke-linecap="round"/>`;
-  html += `<path d="M ${glassR - 1} ${glassT + 10} C ${w + 2} ${glassT + 10} ${w + 2} ${glassB - 12} ${glassR - 1} ${glassB - 12}" fill="none" stroke="${shine}" stroke-width="2.5"/>`;
+  // Lesk a ucho ve stejné barvě jako obrys
+  html += `<line x1="${glassL + 5}" y1="${glassT + 5}" x2="${glassL + 3}" y2="${glassB - 8}" stroke="${color}" stroke-width="1.2" stroke-linecap="round" opacity="0.4"/>`;
+  html += `<path d="M ${glassR - 1} ${glassT + 10} C ${w + 2} ${glassT + 10} ${w + 2} ${glassB - 12} ${glassR - 1} ${glassB - 12}" fill="none" stroke="${color}" stroke-width="2.5"/>`;
   return html;
 }
 
-function buildStemSVG(id: string, fillPct: number): string {
+function buildStemSVG(id: string, fillPct: number, color: string): string {
   const w = 40, h = 58;
   const bowlTL = 3, bowlTR = w - 3, bowlBL = 12, bowlBR = w - 12, bowlT = 3, bowlB = 36;
   const innerTL = bowlTL + 3, innerTR = bowlTR - 3, innerBL = bowlBL + 2, innerBR = bowlBR - 2;
   const innerT = bowlT + 3, innerB = bowlB - 2, innerH = innerB - innerT;
   const liquidH = innerH * fillPct, liquidT = innerB - liquidH;
   const foamH = fillPct > 0.05 ? Math.min(8, liquidH * 0.25) : 0, beerT = liquidT + foamH;
-  const shine = "rgba(255,255,255,0.55)", foam = "#FEF3C7", beer = "#D97706";
+  const foam = "#FEF3C7", beer = "#D97706";
   const clipPts = `${innerTL},${innerT} ${innerTR},${innerT} ${innerBR},${innerB} ${innerBL},${innerB}`;
   const totalH = bowlB - bowlT;
 
@@ -91,14 +94,16 @@ function buildStemSVG(id: string, fillPct: number): string {
   }
 
   let html = `<defs><clipPath id="clip-${id}"><polygon points="${clipPts}"/></clipPath></defs>`;
-  html += `<polygon points="${bowlTL},${bowlT} ${bowlTR},${bowlT} ${bowlBR},${bowlB} ${bowlBL},${bowlB}" fill="rgba(255,255,255,0.1)" stroke="${shine}" stroke-width="1.5"/>`;
+
+  // Průhledná výplň, barevný obrys
+  html += `<polygon points="${bowlTL},${bowlT} ${bowlTR},${bowlT} ${bowlBR},${bowlB} ${bowlBL},${bowlB}" fill="rgba(0,0,0,0.08)" stroke="${color}" stroke-width="2"/>`;
 
   if (fillPct > 0.02) {
     const bTL = xAtY(beerT, true), bTR = xAtY(beerT, false);
     html += `<polygon points="${bTL},${beerT} ${bTR},${beerT} ${innerBR},${innerB} ${innerBL},${innerB}" fill="${beer}" clip-path="url(#clip-${id})"/>`;
     if (fillPct > 0.15) {
       [[0.3, 0.65, 1.2], [0.6, 0.5, 1], [0.45, 0.8, 1]].forEach(([rx, ry, rr]) => {
-        html += `<circle cx="${innerBL + (innerBR - innerBL) * rx}" cy="${beerT + (innerB - beerT) * ry}" r="${rr}" fill="rgba(255,255,255,0.4)" clip-path="url(#clip-${id})"/>`;
+        html += `<circle cx="${innerBL + (innerBR - innerBL) * rx}" cy="${beerT + (innerB - beerT) * ry}" r="${rr}" fill="rgba(255,255,255,0.5)" clip-path="url(#clip-${id})"/>`;
       });
     }
     if (foamH > 0) {
@@ -112,14 +117,14 @@ function buildStemSVG(id: string, fillPct: number): string {
       fp += ` L ${fTR} ${liquidT + foamH} Z`;
       html += `<path d="${fp}" fill="${foam}" clip-path="url(#clip-${id})"/>`;
       for (let i = 0; i < 3; i++)
-        html += `<circle cx="${fTL + fw * (0.15 + i * 0.32)}" cy="${liquidT + foamH * 0.4}" r="1.8" fill="rgba(255,255,255,0.65)" clip-path="url(#clip-${id})"/>`;
+        html += `<circle cx="${fTL + fw * (0.15 + i * 0.32)}" cy="${liquidT + foamH * 0.4}" r="1.8" fill="rgba(255,255,255,0.8)" clip-path="url(#clip-${id})"/>`;
     }
   }
 
   const stemX = w / 2;
-  html += `<line x1="${bowlTL + 5}" y1="${bowlT + 4}" x2="${bowlBL + 3}" y2="${bowlB - 6}" stroke="${shine}" stroke-width="1.8" stroke-linecap="round"/>`;
-  html += `<line x1="${stemX}" y1="${bowlB}" x2="${stemX}" y2="${h - 5}" stroke="${shine}" stroke-width="3" stroke-linecap="round"/>`;
-  html += `<ellipse cx="${stemX}" cy="${h - 5}" rx="9" ry="2.5" fill="rgba(255,255,255,0.1)" stroke="${shine}" stroke-width="1.5"/>`;
+  html += `<line x1="${bowlTL + 5}" y1="${bowlT + 4}" x2="${bowlBL + 3}" y2="${bowlB - 6}" stroke="${color}" stroke-width="1.2" stroke-linecap="round" opacity="0.4"/>`;
+  html += `<line x1="${stemX}" y1="${bowlB}" x2="${stemX}" y2="${h - 5}" stroke="${color}" stroke-width="3" stroke-linecap="round"/>`;
+  html += `<ellipse cx="${stemX}" cy="${h - 5}" rx="9" ry="2.5" fill="none" stroke="${color}" stroke-width="2"/>`;
   return html;
 }
 
@@ -174,7 +179,6 @@ function GlassButton({
     const posInCycle = countRef.current % 5;
 
     if (waiting) {
-      // Plná zmizí, nová se stane aktivní
       setWaiting(false);
       setNewVisible(false);
       setFillPct(0);
@@ -186,7 +190,6 @@ function GlassButton({
     }
 
     if (posInCycle === 0) {
-      // 5. pivo – doplň na plno, pak zobraz novou prázdnou
       animate(fillRef.current, 1.0, (v) => { setFillPct(v); fillRef.current = v; }, () => {
         setWaiting(true);
         setNewVisible(true);
@@ -202,30 +205,37 @@ function GlassButton({
     <button
       onClick={handleClick}
       style={{
-        border: "none", borderRadius: 16, padding: "18px 12px 14px",
-        cursor: "pointer", display: "flex", flexDirection: "column",
-        alignItems: "center", gap: 6, background: color, color: "#fff",
-        flex: 1, transition: "transform 0.1s ease",
+        border: `2px solid ${color}`,
+        borderRadius: 16,
+        padding: "18px 12px 14px",
+        cursor: "pointer",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 6,
+        background: "transparent",   // ← průhledné pozadí
+        color: color,                 // ← text ve stejné barvě jako obrys
+        flex: 1,
+        transition: "transform 0.1s ease, opacity 0.1s ease",
       }}
     >
       <div style={{ height: 60, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 4 }}>
         <svg
           width={svgW} height={svgH}
           viewBox={`0 0 ${svgW} ${svgH}`}
-          style={{ opacity: waiting ? 1 : 1 }}
-          dangerouslySetInnerHTML={{ __html: buildSVG(idA, waiting ? 1.0 : fillPct) }}
+          dangerouslySetInnerHTML={{ __html: buildSVG(idA, waiting ? 1.0 : fillPct, color) }}
         />
         {newVisible && (
           <svg
             width={svgW} height={svgH}
             viewBox={`0 0 ${svgW} ${svgH}`}
             style={{ animation: "fadeInGlass 0.4s ease" }}
-            dangerouslySetInnerHTML={{ __html: buildSVG(idB, newFill) }}
+            dangerouslySetInnerHTML={{ __html: buildSVG(idB, newFill, color) }}
           />
         )}
       </div>
       <span style={{ fontSize: 14, fontWeight: 700 }}>{label}</span>
-      <span style={{ fontSize: 11, opacity: 0.75 }}>{sublabel}</span>
+      <span style={{ fontSize: 11, opacity: 0.6 }}>{sublabel}</span>
     </button>
   );
 }
@@ -235,9 +245,7 @@ function GlassButton({
 function renderTallies(count: number, symbol: string) {
   const groups = Math.floor(count / 5);
   const rest = count % 5;
-  return (
-    <>{"卌".repeat(groups)}{symbol.repeat(rest)}</>
-  );
+  return (<>{"卌".repeat(groups)}{symbol.repeat(rest)}</>);
 }
 
 // ─── Stat karta ───────────────────────────────────────────────────────────────
