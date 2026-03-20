@@ -44,6 +44,18 @@ const NA_MILESTONES: string[] = [
 
 const GLASS_STROKE = "rgba(180,180,180,0.9)";
 
+// ─── Výpočet stavu sklenice z počtu ───────────────────────────────────────────
+// Vrátí: kolik sklenic je plných (waiting) a jak moc je naplněna ta aktuální
+function glassStateFromCount(count: number): { fillPct: number; waiting: boolean } {
+  if (count === 0) return { fillPct: 0, waiting: false };
+  const posInCycle = count % 5;
+  if (posInCycle === 0) {
+    // Právě na 5. – sklenice plná, čeká nová
+    return { fillPct: 1.0, waiting: true };
+  }
+  return { fillPct: posInCycle / 5 * 0.92, waiting: false };
+}
+
 // ─── SVG builders ─────────────────────────────────────────────────────────────
 
 function buildMugSVG(id: string, fillPct: number): string {
@@ -141,18 +153,35 @@ function buildStemSVG(id: string, fillPct: number): string {
 type GlassType = "mug" | "stem";
 
 function GlassButton({
-  id, type, color, label, sublabel, onAdd,
+  id, type, color, label, sublabel, initialCount, onAdd,
 }: {
   id: string; type: GlassType; color: string;
-  label: string; sublabel: string; onAdd: () => void;
+  label: string; sublabel: string;
+  initialCount: number;  // ← počet načtený z DB při startu
+  onAdd: () => void;
 }) {
-  const [fillPct, setFillPct] = useState(0);
-  const [waiting, setWaiting] = useState(false);
-  const [newVisible, setNewVisible] = useState(false);
-  const [newFill, setNewFill] = useState(0);
-  const countRef = useRef(0);
+  const initial = glassStateFromCount(initialCount);
+
+  const [fillPct, setFillPct] = useState(initial.fillPct);
+  const [waiting, setWaiting] = useState(initial.waiting);
+  const [newVisible, setNewVisible] = useState(initial.waiting); // prázdná vedle, pokud čeká
+  const [newFill] = useState(0);
+  const countRef = useRef(initialCount);
   const rafRef = useRef<number | null>(null);
-  const fillRef = useRef(0);
+  const fillRef = useRef(initial.fillPct);
+
+  // Pokud se initialCount změní (po načtení z DB), synchronizujeme stav
+  const prevInitialRef = useRef(initialCount);
+  useEffect(() => {
+    if (prevInitialRef.current === initialCount) return;
+    prevInitialRef.current = initialCount;
+    const s = glassStateFromCount(initialCount);
+    setFillPct(s.fillPct);
+    setWaiting(s.waiting);
+    setNewVisible(s.waiting);
+    fillRef.current = s.fillPct;
+    countRef.current = initialCount;
+  }, [initialCount]);
 
   const svgW = type === "mug" ? 36 : 30;
   const svgH = 44;
@@ -186,7 +215,7 @@ function GlassButton({
 
     if (posInCycle === 0) {
       animate(fillRef.current, 1.0, (v) => { setFillPct(v); fillRef.current = v; }, () => {
-        setWaiting(true); setNewVisible(true); setNewFill(0);
+        setWaiting(true); setNewVisible(true);
       });
     } else {
       const toPct = posInCycle / 5 * 0.92;
@@ -278,6 +307,11 @@ export default function HomePage() {
     }
     setStats(map);
     statsRef.current = map;
+
+    // Nastavíme milestone index na správnou pozici podle počtu z DB
+    // (každá 2. piva = 1 milestone, takže index = floor(total / 2))
+    beerMilestoneRef.current = Math.floor((map.beer_large + map.beer_small) / 2) % BEER_MILESTONES.length;
+    naMilestoneRef.current   = Math.floor((map.na_large   + map.na_small)   / 2) % NA_MILESTONES.length;
   }, [userId]);
 
   useEffect(() => { load(); }, [load]);
@@ -314,8 +348,10 @@ export default function HomePage() {
       <div style={{ display: "grid", gap: 6 }}>
         <SectionHeading>🍺 Pivo</SectionHeading>
         <div style={{ display: "flex", gap: 8 }}>
-          <GlassButton id="gl-beer-large" type="mug"  color="#EA580C" label="Velké" sublabel="0,5 l" onAdd={() => add("beer", "large")} />
-          <GlassButton id="gl-beer-small" type="stem" color="#F97316" label="Malé"  sublabel="0,3 l" onAdd={() => add("beer", "small")} />
+          <GlassButton id="gl-beer-large" type="mug"  color="#EA580C" label="Velké" sublabel="0,5 l"
+            initialCount={stats.beer_large} onAdd={() => add("beer", "large")} />
+          <GlassButton id="gl-beer-small" type="stem" color="#F97316" label="Malé"  sublabel="0,3 l"
+            initialCount={stats.beer_small} onAdd={() => add("beer", "small")} />
         </div>
         <StatRow
           leftLabel="Velká piva"  leftValue={stats.beer_large}  leftSymbol="|"
@@ -329,8 +365,10 @@ export default function HomePage() {
       <div style={{ display: "grid", gap: 6 }}>
         <SectionHeading>🥤 Nealko</SectionHeading>
         <div style={{ display: "flex", gap: 8 }}>
-          <GlassButton id="gl-na-large" type="mug"  color="#2563EB" label="Velké" sublabel="0,5 l" onAdd={() => add("na", "large")} />
-          <GlassButton id="gl-na-small" type="stem" color="#3B82F6" label="Malé"  sublabel="0,3 l" onAdd={() => add("na", "small")} />
+          <GlassButton id="gl-na-large" type="mug"  color="#2563EB" label="Velké" sublabel="0,5 l"
+            initialCount={stats.na_large} onAdd={() => add("na", "large")} />
+          <GlassButton id="gl-na-small" type="stem" color="#3B82F6" label="Malé"  sublabel="0,3 l"
+            initialCount={stats.na_small} onAdd={() => add("na", "small")} />
         </div>
         <StatRow
           leftLabel="Velká nealka"  leftValue={stats.na_large}  leftSymbol="|"
