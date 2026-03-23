@@ -200,7 +200,7 @@ export default function AdminUsersPage() {
                     <input
                       placeholder="Jméno / přezdívka (volitelné)"
                       value={nameVal}
-                      style={{ flex: 1, fontSize: 13, minWidth: 0 }}
+                      style={{ flex: 1, fontSize: 16, minWidth: 0 }}
                       onChange={(e) =>
                         setEditingName((prev) => ({ ...prev, [p.user_id]: e.target.value }))
                       }
