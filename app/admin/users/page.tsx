@@ -196,11 +196,11 @@ export default function AdminUsersPage() {
                   </div>
 
                   {/* Dolní řádek – jméno/přezdívka */}
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                     <input
                       placeholder="Jméno / přezdívka (volitelné)"
                       value={nameVal}
-                      style={{ flex: 1, fontSize: 13 }}
+                      style={{ flex: 1, fontSize: 13, minWidth: 0 }}
                       onChange={(e) =>
                         setEditingName((prev) => ({ ...prev, [p.user_id]: e.target.value }))
                       }
@@ -218,7 +218,7 @@ export default function AdminUsersPage() {
                     />
                     {isEditing && (
                       <button
-                        style={{ padding: "6px 12px", fontSize: 13 }}
+                        style={{ padding: "5px 10px", fontSize: 12, whiteSpace: "nowrap", width: "auto", flexShrink: 0 }}
                         onClick={() => saveName(p.user_id)}
                       >
                         Uložit
