@@ -49,9 +49,16 @@ export default function AdminUsersPage() {
     const ok = confirm(`Opravdu poslat pozvánku na: ${email}?`);
     if (!ok) return;
 
+    const { data: sess } = await supabase.auth.getSession();
+    const token = sess.session?.access_token;
+    if (!token) return alert("Chybí session/token. Zkus se odhlásit a přihlásit.");
+
     const res = await fetch("/api/admin/invite", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({ email, role: newRole }),
     });
 
