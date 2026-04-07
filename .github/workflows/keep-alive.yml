@@ -2,8 +2,8 @@ name: Keep Supabase Alive
 
 on:
   schedule:
-    - cron: '0 8 */5 * *'  # každých 5 dní v 8:00
-  workflow_dispatch:         # možnost spustit ručně
+    - cron: '0 8 */5 * *'
+  workflow_dispatch:
 
 jobs:
   ping:
@@ -11,7 +11,14 @@ jobs:
     steps:
       - name: Ping Supabase
         run: |
-          curl -s "${{ secrets.SUPABASE_URL }}/rest/v1/" \
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/" \
             -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
-          echo "Pinged Supabase successfully"
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+          echo "Response code: $response"
+          if [ "$response" -ge 200 ] && [ "$response" -lt 300 ]; then
+            echo "Pinged Supabase successfully ✅"
+          else
+            echo "Ping failed with status $response ❌"
+            exit 1
+          fi
