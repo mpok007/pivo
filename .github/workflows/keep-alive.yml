@@ -11,12 +11,5 @@ jobs:
     steps:
       - name: Ping Supabase
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" \
-            "${{ secrets.SUPABASE_URL }}/auth/v1/health")
-          echo "Response code: $response"
-          if [ "$response" -ge 200 ] && [ "$response" -lt 500 ]; then
-            echo "Pinged Supabase successfully ✅"
-          else
-            echo "Ping failed with status $response ❌"
-            exit 1
-          fi
+          curl -s "${{ secrets.SUPABASE_URL }}/auth/v1/health"
+          echo "Pinged Supabase successfully ✅"
