@@ -14,11 +14,11 @@ type Profile = {
 export default function AdminUsersPage() {
   const { role } = useAuth(true);
 
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [email, setEmail]       = useState("");
-  const [newRole, setNewRole]   = useState<"admin" | "user">("user");
-  const [loading, setLoading]   = useState(true);
-  // Sleduje, který uživatel má právě editované jméno (user_id → dočasná hodnota)
+  const [profiles, setProfiles]       = useState<Profile[]>([]);
+  const [confirmed, setConfirmed]     = useState<Record<string, boolean>>({});
+  const [email, setEmail]             = useState("");
+  const [newRole, setNewRole]         = useState<"admin" | "user">("user");
+  const [loading, setLoading]         = useState(true);
   const [editingName, setEditingName] = useState<Record<string, string>>({});
 
   const loadProfiles = useCallback(async () => {
@@ -35,6 +35,28 @@ export default function AdminUsersPage() {
     }
 
     setProfiles(data ?? []);
+
+    // Načti potvrzení emailů přes API route
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (token) {
+        const res = await fetch("/api/admin/users", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const json = await res.json();
+          const confirmedMap: Record<string, boolean> = {};
+          for (const u of json.users ?? []) {
+            confirmedMap[u.user_id] = !!u.confirmed_at;
+          }
+          setConfirmed(confirmedMap);
+        }
+      }
+    } catch {
+      // tiché selhání
+    }
+
     setLoading(false);
   }, []);
 
@@ -46,7 +68,6 @@ export default function AdminUsersPage() {
 
   const inviteUser = async () => {
     if (!email) return alert("Zadej email.");
-
     const ok = confirm(`Opravdu poslat pozvánku na: ${email}?`);
     if (!ok) return;
 
@@ -84,7 +105,6 @@ export default function AdminUsersPage() {
 
     if (error) return alert("Chyba uložení jména: " + error.message);
 
-    // Odstraníme z editingName a znovu načteme
     setEditingName((prev) => {
       const next = { ...prev };
       delete next[userId];
@@ -125,6 +145,8 @@ export default function AdminUsersPage() {
     loadProfiles();
   };
 
+  const confirmedCount = Object.values(confirmed).filter(Boolean).length;
+
   return (
     <main>
       <h1 className="h1">Admin – Uživatelé</h1>
@@ -149,15 +171,25 @@ export default function AdminUsersPage() {
 
       {/* Seznam uživatelů */}
       <div style={{ marginTop: 24 }}>
-        <b>Existující uživatelé</b>
+        <div style={{ marginBottom: 10 }}>
+          <b>Existující uživatelé: {profiles.length}</b>
+          {!loading && (
+            <span style={{ fontSize: 13, opacity: 0.65, marginLeft: 8 }}>
+              potvrzeno: <b style={{ color: "#16a34a" }}>{confirmedCount}</b>
+              {" / čeká: "}
+              <b style={{ color: "#999" }}>{profiles.length - confirmedCount}</b>
+            </span>
+          )}
+        </div>
 
         {loading && <div style={{ marginTop: 10 }}>Načítám…</div>}
 
         {!loading && (
-          <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+          <div style={{ display: "grid", gap: 10 }}>
             {profiles.map((p) => {
               const isEditing = p.user_id in editingName;
               const nameVal = isEditing ? editingName[p.user_id] : (p.name ?? "");
+              const isConfirmed = confirmed[p.user_id] ?? false;
 
               return (
                 <div
@@ -165,11 +197,27 @@ export default function AdminUsersPage() {
                   className="cardTight"
                   style={{ border: "1px solid #e5e5e5", display: "grid", gap: 8, padding: 10 }}
                 >
-                  {/* Horní řádek – email + role tlačítka + smazat */}
+                  {/* Horní řádek – ikonka + email + role tlačítka + smazat */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                    <div>
-                      <b>{p.email}</b>
-                      <div style={{ opacity: 0.5, fontSize: 11 }}>{p.user_id}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {/* Ikonka potvrzení */}
+                      <span
+                        title={isConfirmed ? "Registrace potvrzena" : "Čeká na potvrzení"}
+                        style={{
+                          width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 11, fontWeight: 700, border: "1.5px solid",
+                          borderColor: isConfirmed ? "#16a34a" : "#ccc",
+                          background: isConfirmed ? "#16a34a" : "transparent",
+                          color: isConfirmed ? "#fff" : "transparent",
+                        }}
+                      >
+                        ✓
+                      </span>
+                      <div>
+                        <b>{p.email}</b>
+                        <div style={{ opacity: 0.5, fontSize: 11 }}>{p.user_id}</div>
+                      </div>
                     </div>
                     <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                       <button
