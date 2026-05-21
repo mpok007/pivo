@@ -1,0 +1,23 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    - cron: '0 7 * * *'  # spustí se v 7:00, ale ping proběhne náhodně
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase
+        run: |
+          # Náhodné zpoždění 0–3 hodiny (0–10800 sekund)
+          delay=$((RANDOM % 10800))
+          echo "Čekám $delay sekund před pingem..."
+          sleep $delay
+          
+          curl -s "${{ secrets.SUPABASE_URL }}/rest/v1/profiles?limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Accept: application/json"
+          echo "Pinged Supabase successfully ✅"
