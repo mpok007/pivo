@@ -64,8 +64,7 @@ export default function AdminPage() {
 
     const { data: p, error: pErr } = await supabase
       .from("profiles")
-      .select("user_id,email,name,role")
-      .order("email");
+      .select("user_id,email,name,role");
 
     if (pErr) {
       alert("Chyba profily: " + pErr.message);
@@ -90,7 +89,12 @@ export default function AdminPage() {
       if (key in map[row.user_id]) map[row.user_id][key] += 1;
     }
 
-    setProfiles(p ?? []);
+    const sorted = (p ?? []).sort((a, b) => {
+      const aKey = (a.name ?? a.email ?? a.user_id).toLowerCase();
+      const bKey = (b.name ?? b.email ?? b.user_id).toLowerCase();
+      return aKey.localeCompare(bKey, "cs");
+    });
+    setProfiles(sorted);
     setStats(map);
     setLoading(false);
   }, []);
