@@ -329,22 +329,22 @@ function Leaderboard({ entries, myTotal }: { entries: LeaderboardEntry[]; myTota
             <div>
               <div style={{
                 fontSize: 13, fontWeight: e.isMe ? 700 : 400,
-                color: e.isMe ? "#EA580C" : "var(--color-text-primary)",
+                color: e.isMe ? "#EA580C" : rank === 1 ? "#D97706" : "var(--color-text-secondary)",
                 marginBottom: 3,
                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               }}>
                 {e.isMe ? "Ty" : e.displayName}
               </div>
-              <div style={{ background: "var(--color-background-secondary)", borderRadius: 3, height: 6, overflow: "hidden" }}>
+              <div style={{ background: "var(--color-border-tertiary)", borderRadius: 3, height: 6, overflow: "hidden" }}>
                 <div style={{
                   width: `${pct}%`, height: "100%", borderRadius: 3,
-                  background: e.isMe ? "#EA580C" : "var(--color-text-tertiary)",
+                  background: e.isMe ? "#EA580C" : rank === 1 ? "#D97706" : "rgba(150,150,150,0.5)",
                   transition: "width 0.6s ease",
                 }} />
               </div>
             </div>
             {/* Počet */}
-            <div style={{ fontSize: 13, color: e.isMe ? "#EA580C" : "var(--color-text-secondary)", textAlign: "right", fontWeight: e.isMe ? 700 : 400 }}>
+            <div style={{ fontSize: 13, color: e.isMe ? "#EA580C" : rank === 1 ? "#D97706" : "var(--color-text-secondary)", textAlign: "right", fontWeight: e.isMe || rank === 1 ? 700 : 400 }}>
               {e.total}
             </div>
           </div>
