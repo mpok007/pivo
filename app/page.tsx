@@ -320,33 +320,31 @@ function Leaderboard({ entries, myTotal }: { entries: LeaderboardEntry[]; myTota
         const rank = i + 1;
         const pct = max > 0 ? (e.total / max) * 100 : 0;
         return (
-          <div key={e.user_id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ fontSize: 13, color: "var(--color-text-secondary)", minWidth: 24, textAlign: "right" }}>
+          <div key={e.user_id} style={{ display: "grid", gridTemplateColumns: "28px 1fr 36px", alignItems: "center", gap: 6 }}>
+            {/* Pořadí */}
+            <div style={{ fontSize: 13, color: "var(--color-text-secondary)", textAlign: "center" }}>
               {RANK_MEDALS[rank] ?? `${rank}.`}
             </div>
-            <div style={{
-              fontSize: 13, fontWeight: e.isMe ? 700 : 400,
-              color: e.isMe ? "#EA580C" : "var(--color-text-primary)",
-              minWidth: 80, maxWidth: 100,
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            }}>
-              {e.isMe ? "Ty" : e.displayName}
-            </div>
-            <div style={{ flex: 1, background: "var(--color-background-secondary)", borderRadius: 4, height: 22, overflow: "hidden" }}>
+            {/* Jméno + sloupeček */}
+            <div>
               <div style={{
-                width: `${pct}%`, height: "100%", borderRadius: 4,
-                background: e.isMe ? "#EA580C" : "var(--color-border-secondary)",
-                display: "flex", alignItems: "center", paddingLeft: 8,
-                transition: "width 0.6s ease",
+                fontSize: 13, fontWeight: e.isMe ? 700 : 400,
+                color: e.isMe ? "#EA580C" : "var(--color-text-primary)",
+                marginBottom: 3,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               }}>
-                {pct > 20 && (
-                  <span style={{ fontSize: 11, fontWeight: 500, color: e.isMe ? "#fff" : "var(--color-text-secondary)" }}>
-                    {e.total}
-                  </span>
-                )}
+                {e.isMe ? "Ty" : e.displayName}
+              </div>
+              <div style={{ background: "var(--color-background-secondary)", borderRadius: 3, height: 6, overflow: "hidden" }}>
+                <div style={{
+                  width: `${pct}%`, height: "100%", borderRadius: 3,
+                  background: e.isMe ? "#EA580C" : "var(--color-text-tertiary)",
+                  transition: "width 0.6s ease",
+                }} />
               </div>
             </div>
-            <div style={{ fontSize: 12, color: e.isMe ? "#EA580C" : "var(--color-text-secondary)", minWidth: 24, textAlign: "right", fontWeight: e.isMe ? 700 : 400 }}>
+            {/* Počet */}
+            <div style={{ fontSize: 13, color: e.isMe ? "#EA580C" : "var(--color-text-secondary)", textAlign: "right", fontWeight: e.isMe ? 700 : 400 }}>
               {e.total}
             </div>
           </div>
