@@ -11,6 +11,13 @@ type Stats = {
   na_large: number;
 };
 
+type LeaderboardEntry = {
+  user_id: string;
+  displayName: string;
+  total: number;
+  isMe: boolean;
+};
+
 const EMPTY_STATS: Stats = {
   beer_small: 0,
   beer_large: 0,
@@ -32,7 +39,7 @@ const BEER_MILESTONES: string[] = [
 ];
 
 const NA_MILESTONES: string[] = [
-  "To máš pivo, nebo jen ochucenou výmluvu? 🤔",
+  "To máš pivo, nebo jen ochoucenou výmluvu? 🤔",
   "Kámo, tohle je pivo na zkoušku? 📝",
   "To už si rovnou dej vodu a nehraj si na hrdinu. 💧",
   "Nealko pivo – když chceš pít, ale zároveň nechceš pít. 🤷",
@@ -44,15 +51,14 @@ const NA_MILESTONES: string[] = [
 
 const GLASS_STROKE = "rgba(180,180,180,0.9)";
 
+const RANK_MEDALS: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
+
 // ─── Výpočet stavu sklenice z počtu ───────────────────────────────────────────
-// Vrátí: kolik sklenic je plných (waiting) a jak moc je naplněna ta aktuální
+
 function glassStateFromCount(count: number): { fillPct: number; waiting: boolean } {
   if (count === 0) return { fillPct: 0, waiting: false };
   const posInCycle = count % 5;
-  if (posInCycle === 0) {
-    // Právě na 5. – sklenice plná, čeká nová
-    return { fillPct: 1.0, waiting: true };
-  }
+  if (posInCycle === 0) return { fillPct: 1.0, waiting: true };
   return { fillPct: posInCycle / 5 * 0.92, waiting: false };
 }
 
@@ -70,7 +76,6 @@ function buildMugSVG(id: string, fillPct: number): string {
   const foam = "#FEF3C7", beer = "#D97706";
 
   let html = `<defs><clipPath id="clip-${id}"><rect x="${innerL}" y="${innerT}" width="${innerR - innerL}" height="${innerH}"/></clipPath></defs>`;
-
   if (fillPct > 0.02) {
     html += `<rect x="${innerL}" y="${beerT}" width="${innerR - innerL}" height="${innerB - beerT}" fill="${beer}" clip-path="url(#clip-${id})"/>`;
     if (fillPct > 0.15) {
@@ -92,7 +97,6 @@ function buildMugSVG(id: string, fillPct: number): string {
         html += `<circle cx="${innerL + fw * (0.18 + i * 0.3)}" cy="${liquidT + foamH * 0.4}" r="1.5" fill="rgba(255,255,255,0.8)" clip-path="url(#clip-${id})"/>`;
     }
   }
-
   html += `<rect x="${glassL}" y="${glassT}" width="${glassR - glassL}" height="${glassB - glassT}" rx="3" fill="none" stroke="${GLASS_STROKE}" stroke-width="1.5"/>`;
   html += `<path d="M ${glassR - 1} ${glassT + 7} C ${w + 1} ${glassT + 7} ${w + 1} ${glassB - 9} ${glassR - 1} ${glassB - 9}" fill="none" stroke="${GLASS_STROKE}" stroke-width="2"/>`;
   html += `<line x1="${glassL + 4}" y1="${glassT + 4}" x2="${glassL + 2}" y2="${glassB - 6}" stroke="rgba(255,255,255,0.5)" stroke-width="1.2" stroke-linecap="round"/>`;
@@ -116,7 +120,6 @@ function buildStemSVG(id: string, fillPct: number): string {
   }
 
   let html = `<defs><clipPath id="clip-${id}"><polygon points="${clipPts}"/></clipPath></defs>`;
-
   if (fillPct > 0.02) {
     const bTL = xAtY(beerT, true), bTR = xAtY(beerT, false);
     html += `<polygon points="${bTL},${beerT} ${bTR},${beerT} ${innerBR},${innerB} ${innerBL},${innerB}" fill="${beer}" clip-path="url(#clip-${id})"/>`;
@@ -139,7 +142,6 @@ function buildStemSVG(id: string, fillPct: number): string {
         html += `<circle cx="${fTL + fw * (0.15 + i * 0.32)}" cy="${liquidT + foamH * 0.4}" r="1.2" fill="rgba(255,255,255,0.8)" clip-path="url(#clip-${id})"/>`;
     }
   }
-
   html += `<polygon points="${bowlTL},${bowlT} ${bowlTR},${bowlT} ${bowlBR},${bowlB} ${bowlBL},${bowlB}" fill="none" stroke="${GLASS_STROKE}" stroke-width="1.5"/>`;
   const stemX = w / 2;
   html += `<line x1="${stemX}" y1="${bowlB}" x2="${stemX}" y2="${h - 4}" stroke="${GLASS_STROKE}" stroke-width="2.5" stroke-linecap="round"/>`;
@@ -157,21 +159,19 @@ function GlassButton({
 }: {
   id: string; type: GlassType; color: string;
   label: string; sublabel: string;
-  initialCount: number;  // ← počet načtený z DB při startu
+  initialCount: number;
   onAdd: () => void;
 }) {
   const initial = glassStateFromCount(initialCount);
-
   const [fillPct, setFillPct] = useState(initial.fillPct);
   const [waiting, setWaiting] = useState(initial.waiting);
-  const [newVisible, setNewVisible] = useState(initial.waiting); // prázdná vedle, pokud čeká
+  const [newVisible, setNewVisible] = useState(initial.waiting);
   const [newFill] = useState(0);
   const countRef = useRef(initialCount);
   const rafRef = useRef<number | null>(null);
   const fillRef = useRef(initial.fillPct);
-
-  // Pokud se initialCount změní (po načtení z DB), synchronizujeme stav
   const prevInitialRef = useRef(initialCount);
+
   useEffect(() => {
     if (prevInitialRef.current === initialCount) return;
     prevInitialRef.current = initialCount;
@@ -204,7 +204,6 @@ function GlassButton({
     onAdd();
     countRef.current += 1;
     const posInCycle = countRef.current % 5;
-
     if (waiting) {
       setWaiting(false); setNewVisible(false); setFillPct(0);
       fillRef.current = 0; countRef.current = 1;
@@ -212,7 +211,6 @@ function GlassButton({
       setTimeout(() => animate(0, toPct, (v) => { setFillPct(v); fillRef.current = v; }), 50);
       return;
     }
-
     if (posInCycle === 0) {
       animate(fillRef.current, 1.0, (v) => { setFillPct(v); fillRef.current = v; }, () => {
         setWaiting(true); setNewVisible(true);
@@ -288,18 +286,95 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ─── Žebříček ─────────────────────────────────────────────────────────────────
+
+function Leaderboard({ entries, myTotal }: { entries: LeaderboardEntry[]; myTotal: number }) {
+  if (entries.length === 0) return null;
+
+  const myRank = entries.findIndex(e => e.isMe) + 1;
+  const max = entries[0]?.total ?? 1;
+
+  return (
+    <div style={{ marginTop: 16, display: "grid", gap: 8 }}>
+
+      {/* Můj souhrn */}
+      <div style={{
+        background: "var(--color-background-secondary)",
+        border: "0.5px solid var(--color-border-secondary)",
+        borderRadius: 10, padding: "10px 14px",
+        display: "flex", alignItems: "center", gap: 12,
+      }}>
+        <div style={{ fontSize: 24 }}>{RANK_MEDALS[myRank] ?? `${myRank}.`}</div>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 500, color: "var(--color-text-primary)" }}>
+            Máš celkem <b>{myTotal}</b> {myTotal === 1 ? "nápoj" : myTotal < 5 ? "nápoje" : "nápojů"}
+          </div>
+          <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+            {myRank}. místo z {entries.length} hráčů
+          </div>
+        </div>
+      </div>
+
+      {/* Žebříček */}
+      {entries.map((e, i) => {
+        const rank = i + 1;
+        const pct = max > 0 ? (e.total / max) * 100 : 0;
+        return (
+          <div key={e.user_id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ fontSize: 13, color: "var(--color-text-secondary)", minWidth: 24, textAlign: "right" }}>
+              {RANK_MEDALS[rank] ?? `${rank}.`}
+            </div>
+            <div style={{
+              fontSize: 13, fontWeight: e.isMe ? 700 : 400,
+              color: e.isMe ? "#EA580C" : "var(--color-text-primary)",
+              minWidth: 80, maxWidth: 100,
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
+              {e.isMe ? "Ty" : e.displayName}
+            </div>
+            <div style={{ flex: 1, background: "var(--color-background-secondary)", borderRadius: 4, height: 22, overflow: "hidden" }}>
+              <div style={{
+                width: `${pct}%`, height: "100%", borderRadius: 4,
+                background: e.isMe ? "#EA580C" : "var(--color-border-secondary)",
+                display: "flex", alignItems: "center", paddingLeft: 8,
+                transition: "width 0.6s ease",
+              }}>
+                {pct > 20 && (
+                  <span style={{ fontSize: 11, fontWeight: 500, color: e.isMe ? "#fff" : "var(--color-text-secondary)" }}>
+                    {e.total}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div style={{ fontSize: 12, color: e.isMe ? "#EA580C" : "var(--color-text-secondary)", minWidth: 24, textAlign: "right", fontWeight: e.isMe ? 700 : 400 }}>
+              {e.total}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Hlavní stránka ───────────────────────────────────────────────────────────
 
 export default function HomePage() {
   const { userId } = useAuth(true);
-  const [stats, setStats] = useState<Stats>(EMPTY_STATS);
+  const [stats, setStats]               = useState<Stats>(EMPTY_STATS);
+  const [leaderboard, setLeaderboard]   = useState<LeaderboardEntry[]>([]);
   const beerMilestoneRef = useRef(0);
   const naMilestoneRef   = useRef(0);
   const statsRef = useRef(EMPTY_STATS);
 
   const load = useCallback(async () => {
     if (!userId) return;
-    const { data } = await supabase.from("drink_entries").select("kind,size").eq("user_id", userId);
+
+    // Moje statistiky
+    const { data } = await supabase
+      .from("drink_entries")
+      .select("kind,size")
+      .eq("user_id", userId);
+
     const map: Stats = { ...EMPTY_STATS };
     for (const row of data ?? []) {
       const key = `${row.kind}_${row.size}` as keyof Stats;
@@ -308,10 +383,34 @@ export default function HomePage() {
     setStats(map);
     statsRef.current = map;
 
-    // Nastavíme milestone index na správnou pozici podle počtu z DB
-    // (každá 2. piva = 1 milestone, takže index = floor(total / 2))
     beerMilestoneRef.current = Math.floor((map.beer_large + map.beer_small) / 2) % BEER_MILESTONES.length;
     naMilestoneRef.current   = Math.floor((map.na_large   + map.na_small)   / 2) % NA_MILESTONES.length;
+
+    // Žebříček – všechny záznamy + profily
+    const [{ data: allEntries }, { data: profiles }] = await Promise.all([
+      supabase.from("drink_entries").select("user_id"),
+      supabase.from("profiles").select("user_id,email,name"),
+    ]);
+
+    const totalsMap: Record<string, number> = {};
+    for (const row of allEntries ?? []) {
+      totalsMap[row.user_id] = (totalsMap[row.user_id] ?? 0) + 1;
+    }
+
+    const profileMap: Record<string, { email: string | null; name: string | null }> = {};
+    for (const p of profiles ?? []) {
+      profileMap[p.user_id] = { email: p.email, name: p.name };
+    }
+
+    const entries: LeaderboardEntry[] = Object.entries(totalsMap)
+      .map(([uid, total]) => {
+        const prof = profileMap[uid];
+        const displayName = prof?.name ?? prof?.email ?? uid;
+        return { user_id: uid, displayName, total, isMe: uid === userId };
+      })
+      .sort((a, b) => b.total - a.total);
+
+    setLeaderboard(entries);
   }, [userId]);
 
   useEffect(() => { load(); }, [load]);
@@ -338,6 +437,8 @@ export default function HomePage() {
       }
     }
   };
+
+  const myTotal = stats.beer_large + stats.beer_small + stats.na_large + stats.na_small;
 
   return (
     <main>
@@ -375,6 +476,15 @@ export default function HomePage() {
           rightLabel="Malá nealka"  rightValue={stats.na_small} rightSymbol="×"
         />
       </div>
+
+      {/* ===== ŽEBŘÍČEK ===== */}
+      {leaderboard.length > 1 && (
+        <>
+          <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "14px 0 10px" }} />
+          <SectionHeading>🏆 Žebříček</SectionHeading>
+          <Leaderboard entries={leaderboard} myTotal={myTotal} />
+        </>
+      )}
     </main>
   );
 }
