@@ -320,9 +320,9 @@ function Leaderboard({ entries, myTotal }: { entries: LeaderboardEntry[]; myTota
         const rank = i + 1;
         const pct = max > 0 ? (e.total / max) * 100 : 0;
         return (
-          <div key={e.user_id} style={{ display: "grid", gridTemplateColumns: "28px 1fr 36px", alignItems: "center", gap: 6 }}>
+          <div key={e.user_id} style={{ display: "grid", gridTemplateColumns: "38px 1fr 30px", alignItems: "center", gap: 6 }}>
             {/* Pořadí */}
-            <div style={{ fontSize: 13, color: "var(--color-text-secondary)", textAlign: "center" }}>
+            <div style={{ fontSize: 13, color: "var(--color-text-secondary)", textAlign: "right" }}>
               {RANK_MEDALS[rank] ?? `${rank}.`}
             </div>
             {/* Jméno + sloupeček */}
