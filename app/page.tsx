@@ -18,6 +18,8 @@ type LeaderboardEntry = {
   isMe: boolean;
 };
 
+const ML_LEADERBOARD = { small: 0.3, large: 0.5 }; // litry pro žebříček
+
 const EMPTY_STATS: Stats = {
   beer_small: 0,
   beer_large: 0,
@@ -307,7 +309,7 @@ function Leaderboard({ entries, myTotal }: { entries: LeaderboardEntry[]; myTota
         <div style={{ fontSize: 24 }}>{RANK_MEDALS[myRank] ?? `${myRank}.`}</div>
         <div>
           <div style={{ fontSize: 15, fontWeight: 500, color: "var(--color-text-primary)" }}>
-            Máš celkem <b>{myTotal}</b> {myTotal === 1 ? "nápoj" : myTotal < 5 ? "nápoje" : "nápojů"}
+            Máš celkem <b>{myTotal.toFixed(1)} l</b> nápojů
           </div>
           <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
             {myRank}. místo z {entries.length} hráčů
@@ -345,7 +347,7 @@ function Leaderboard({ entries, myTotal }: { entries: LeaderboardEntry[]; myTota
             </div>
             {/* Počet */}
             <div style={{ fontSize: 13, color: e.isMe ? "#EA580C" : rank === 1 ? "#D97706" : "var(--color-text-secondary)", textAlign: "right", fontWeight: e.isMe || rank === 1 ? 700 : 400 }}>
-              {e.total}
+              {e.total.toFixed(1)} l
             </div>
           </div>
         );
@@ -386,13 +388,14 @@ export default function HomePage() {
 
     // Žebříček – všechny záznamy + profily
     const [{ data: allEntries }, { data: profiles }] = await Promise.all([
-      supabase.from("drink_entries").select("user_id"),
+      supabase.from("drink_entries").select("user_id,kind,size"),
       supabase.from("profiles").select("user_id,email,name"),
     ]);
 
     const totalsMap: Record<string, number> = {};
     for (const row of allEntries ?? []) {
-      totalsMap[row.user_id] = (totalsMap[row.user_id] ?? 0) + 1;
+      const ml = ML_LEADERBOARD[row.size as "small" | "large"] ?? 0.3;
+      totalsMap[row.user_id] = Math.round(((totalsMap[row.user_id] ?? 0) + ml) * 10) / 10;
     }
 
     const profileMap: Record<string, { email: string | null; name: string | null }> = {};
@@ -436,7 +439,7 @@ export default function HomePage() {
     }
   };
 
-  const myTotal = stats.beer_large + stats.beer_small + stats.na_large + stats.na_small;
+  const myTotal = Math.round((stats.beer_large * 0.5 + stats.beer_small * 0.3 + stats.na_large * 0.5 + stats.na_small * 0.3) * 10) / 10;
 
   return (
     <main>
