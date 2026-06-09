@@ -322,7 +322,7 @@ function Leaderboard({ entries, myTotal }: { entries: LeaderboardEntry[]; myTota
         const rank = i + 1;
         const pct = max > 0 ? (e.total / max) * 100 : 0;
         return (
-          <div key={e.user_id} style={{ display: "grid", gridTemplateColumns: "38px 1fr 30px", alignItems: "center", gap: 6 }}>
+          <div key={e.user_id} style={{ display: "grid", gridTemplateColumns: "38px 1fr 46px", alignItems: "center", gap: 6 }}>
             {/* Pořadí */}
             <div style={{ fontSize: 13, color: "var(--color-text-secondary)", textAlign: "right" }}>
               {RANK_MEDALS[rank] ?? `${rank}.`}
@@ -346,7 +346,7 @@ function Leaderboard({ entries, myTotal }: { entries: LeaderboardEntry[]; myTota
               </div>
             </div>
             {/* Počet */}
-            <div style={{ fontSize: 13, color: e.isMe ? "#EA580C" : rank === 1 ? "#D97706" : "var(--color-text-secondary)", textAlign: "right", fontWeight: e.isMe || rank === 1 ? 700 : 400 }}>
+            <div style={{ fontSize: 12, color: e.isMe ? "#EA580C" : rank === 1 ? "#D97706" : "var(--color-text-secondary)", textAlign: "right", fontWeight: e.isMe || rank === 1 ? 700 : 400 }}>
               {e.total.toFixed(1)} l
             </div>
           </div>
