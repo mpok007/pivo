@@ -14,11 +14,16 @@ type Stats = {
 type LeaderboardEntry = {
   user_id: string;
   displayName: string;
-  total: number;
+  total: number; // litry
   isMe: boolean;
 };
 
-const ML_LEADERBOARD = { small: 0.3, large: 0.5 }; // litry pro žebříček
+type Event = {
+  id: string;
+  name: string;
+  date: string;
+  is_active: boolean;
+};
 
 const EMPTY_STATS: Stats = {
   beer_small: 0,
@@ -52,10 +57,10 @@ const NA_MILESTONES: string[] = [
 ];
 
 const GLASS_STROKE = "rgba(180,180,180,0.9)";
-
 const RANK_MEDALS: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
+const ML_LEADERBOARD = { small: 0.3, large: 0.5 };
 
-// ─── Výpočet stavu sklenice z počtu ───────────────────────────────────────────
+// ─── Výpočet stavu sklenice ───────────────────────────────────────────────────
 
 function glassStateFromCount(count: number): { fillPct: number; waiting: boolean } {
   if (count === 0) return { fillPct: 0, waiting: false };
@@ -292,42 +297,38 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 
 function Leaderboard({ entries, myTotal }: { entries: LeaderboardEntry[]; myTotal: number }) {
   if (entries.length === 0) return null;
-
   const myRank = entries.findIndex(e => e.isMe) + 1;
   const max = entries[0]?.total ?? 1;
 
   return (
     <div style={{ marginTop: 16, display: "grid", gap: 8 }}>
-
-      {/* Můj souhrn */}
-      <div style={{
-        background: "var(--color-background-secondary)",
-        border: "0.5px solid var(--color-border-secondary)",
-        borderRadius: 10, padding: "10px 14px",
-        display: "flex", alignItems: "center", gap: 12,
-      }}>
-        <div style={{ fontSize: 24 }}>{RANK_MEDALS[myRank] ?? `${myRank}.`}</div>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 500, color: "var(--color-text-primary)" }}>
-            Máš celkem <b>{myTotal.toFixed(1)} l</b> nápojů
-          </div>
-          <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
-            {myRank}. místo z {entries.length} hráčů
+      {myRank > 0 && (
+        <div style={{
+          background: "var(--color-background-secondary)",
+          border: "0.5px solid var(--color-border-secondary)",
+          borderRadius: 10, padding: "10px 14px",
+          display: "flex", alignItems: "center", gap: 12,
+        }}>
+          <div style={{ fontSize: 24 }}>{RANK_MEDALS[myRank] ?? `${myRank}.`}</div>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 500, color: "var(--color-text-primary)" }}>
+              Máš celkem <b>{myTotal.toFixed(1)} l</b> nápojů
+            </div>
+            <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+              {myRank}. místo z {entries.length} hráčů
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Žebříček */}
       {entries.map((e, i) => {
         const rank = i + 1;
         const pct = max > 0 ? (e.total / max) * 100 : 0;
         return (
           <div key={e.user_id} style={{ display: "grid", gridTemplateColumns: "38px 1fr 46px", alignItems: "center", gap: 6 }}>
-            {/* Pořadí */}
             <div style={{ fontSize: 13, color: "var(--color-text-secondary)", textAlign: "right" }}>
               {RANK_MEDALS[rank] ?? `${rank}.`}
             </div>
-            {/* Jméno + sloupeček */}
             <div>
               <div style={{
                 fontSize: 13, fontWeight: e.isMe ? 700 : 400,
@@ -345,7 +346,6 @@ function Leaderboard({ entries, myTotal }: { entries: LeaderboardEntry[]; myTota
                 }} />
               </div>
             </div>
-            {/* Počet */}
             <div style={{ fontSize: 12, color: e.isMe ? "#EA580C" : rank === 1 ? "#D97706" : "var(--color-text-secondary)", textAlign: "right", fontWeight: e.isMe || rank === 1 ? 700 : 400 }}>
               {e.total.toFixed(1)} l
             </div>
@@ -360,20 +360,54 @@ function Leaderboard({ entries, myTotal }: { entries: LeaderboardEntry[]; myTota
 
 export default function HomePage() {
   const { userId } = useAuth(true);
+
+  const [events, setEvents]             = useState<Event[]>([]);
+  const [activeEvent, setActiveEvent]   = useState<Event | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null); // null = aktivní
   const [stats, setStats]               = useState<Stats>(EMPTY_STATS);
   const [leaderboard, setLeaderboard]   = useState<LeaderboardEntry[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+
   const beerMilestoneRef = useRef(0);
   const naMilestoneRef   = useRef(0);
   const statsRef = useRef(EMPTY_STATS);
 
+  // Načti všechny akce
+  const loadEvents = useCallback(async () => {
+    setLoadingEvents(true);
+    const { data } = await supabase
+      .from("events")
+      .select("*")
+      .order("date", { ascending: false });
+
+    const evts = data ?? [];
+    setEvents(evts);
+    const active = evts.find(e => e.is_active) ?? null;
+    setActiveEvent(active);
+    setLoadingEvents(false);
+  }, []);
+
+  useEffect(() => { loadEvents(); }, [loadEvents]);
+
+  // Aktuálně zobrazovaná akce (null = aktivní)
+  const viewedEvent = selectedEvent ?? activeEvent;
+
+  const isReadOnly = !viewedEvent?.is_active;
+
+  // Načti data pro zobrazenou akci
   const load = useCallback(async () => {
-    if (!userId) return;
+    if (!userId || !viewedEvent) {
+      setStats(EMPTY_STATS);
+      setLeaderboard([]);
+      return;
+    }
 
     // Moje statistiky
     const { data } = await supabase
       .from("drink_entries")
       .select("kind,size")
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .eq("event_id", viewedEvent.id);
 
     const map: Stats = { ...EMPTY_STATS };
     for (const row of data ?? []) {
@@ -384,11 +418,11 @@ export default function HomePage() {
     statsRef.current = map;
 
     beerMilestoneRef.current = Math.floor((map.beer_large + map.beer_small) / 2) % BEER_MILESTONES.length;
-    naMilestoneRef.current   = Math.floor((map.na_large   + map.na_small)   / 2) % NA_MILESTONES.length;
+    naMilestoneRef.current   = Math.floor((map.na_large + map.na_small) / 2) % NA_MILESTONES.length;
 
-    // Žebříček – všechny záznamy + profily
+    // Žebříček
     const [{ data: allEntries }, { data: profiles }] = await Promise.all([
-      supabase.from("drink_entries").select("user_id,kind,size"),
+      supabase.from("drink_entries").select("user_id,kind,size").eq("event_id", viewedEvent.id),
       supabase.from("profiles").select("user_id,email,name"),
     ]);
 
@@ -412,14 +446,20 @@ export default function HomePage() {
       .sort((a, b) => b.total - a.total);
 
     setLeaderboard(entries);
-  }, [userId]);
+  }, [userId, viewedEvent]);
 
   useEffect(() => { load(); }, [load]);
 
   const add = async (kind: "beer" | "na", size: "small" | "large") => {
+    if (!activeEvent) return;
     const ok = confirm("Opravdu přidat záznam?");
     if (!ok) return;
-    await supabase.from("drink_entries").insert({ user_id: userId, kind, size });
+    await supabase.from("drink_entries").insert({
+      user_id: userId,
+      kind,
+      size,
+      event_id: activeEvent.id,
+    });
     await load();
 
     if (kind === "beer") {
@@ -439,47 +479,117 @@ export default function HomePage() {
     }
   };
 
-  const myTotal = Math.round((stats.beer_large * 0.5 + stats.beer_small * 0.3 + stats.na_large * 0.5 + stats.na_small * 0.3) * 10) / 10;
+  const myTotal = Math.round(
+    (stats.beer_large * 0.5 + stats.beer_small * 0.3 + stats.na_large * 0.5 + stats.na_small * 0.3) * 10
+  ) / 10;
+
+  if (loadingEvents) {
+    return <main><div style={{ marginTop: 24 }}>Načítám…</div></main>;
+  }
 
   return (
     <main>
       <style>{`@keyframes fadeInGlass { from { opacity: 0; transform: translateY(-6px) scale(0.9); } to { opacity: 1; transform: none; } }`}</style>
-      <h1 className="h1" style={{ marginBottom: 10 }}>Moje statistika</h1>
 
-      {/* ===== PIVO ===== */}
-      <div style={{ display: "grid", gap: 6 }}>
-        <SectionHeading>🍺 Pivo</SectionHeading>
-        <div style={{ display: "flex", gap: 8 }}>
-          <GlassButton id="gl-beer-large" type="mug"  color="#EA580C" label="Velké" sublabel="0,5 l"
-            initialCount={stats.beer_large} onAdd={() => add("beer", "large")} />
-          <GlassButton id="gl-beer-small" type="stem" color="#F97316" label="Malé"  sublabel="0,3 l"
-            initialCount={stats.beer_small} onAdd={() => add("beer", "small")} />
+      {/* ===== PŘEPÍNAČ AKCÍ ===== */}
+      {events.length > 1 && (
+        <div style={{ marginBottom: 14 }}>
+          <select
+            value={selectedEvent?.id ?? "active"}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === "active") {
+                setSelectedEvent(null);
+              } else {
+                const found = events.find(ev => ev.id === val) ?? null;
+                setSelectedEvent(found);
+              }
+            }}
+            style={{ width: "100%", fontSize: 14 }}
+          >
+            {activeEvent && (
+              <option value="active">🟢 {activeEvent.name} ({new Date(activeEvent.date).toLocaleDateString("cs-CZ")})</option>
+            )}
+            {events
+              .filter(ev => !ev.is_active)
+              .map(ev => (
+                <option key={ev.id} value={ev.id}>
+                  📁 {ev.name} ({new Date(ev.date).toLocaleDateString("cs-CZ")})
+                </option>
+              ))}
+          </select>
         </div>
-        <StatRow
-          leftLabel="Velká piva"  leftValue={stats.beer_large}  leftSymbol="|"
-          rightLabel="Malá piva"  rightValue={stats.beer_small} rightSymbol="×"
-        />
-      </div>
+      )}
 
-      {/* ===== NEALKO ===== */}
-      <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "10px 0" }} />
-
-      <div style={{ display: "grid", gap: 6 }}>
-        <SectionHeading>🥤 Nealko</SectionHeading>
-        <div style={{ display: "flex", gap: 8 }}>
-          <GlassButton id="gl-na-large" type="mug"  color="#2563EB" label="Velké" sublabel="0,5 l"
-            initialCount={stats.na_large} onAdd={() => add("na", "large")} />
-          <GlassButton id="gl-na-small" type="stem" color="#3B82F6" label="Malé"  sublabel="0,3 l"
-            initialCount={stats.na_small} onAdd={() => add("na", "small")} />
+      {/* ===== ŽÁDNÁ AKTIVNÍ AKCE ===== */}
+      {!activeEvent && !selectedEvent && (
+        <div style={{
+          marginTop: 24, padding: 16, borderRadius: 12,
+          background: "var(--color-background-secondary)",
+          border: "0.5px solid var(--color-border-tertiary)",
+          textAlign: "center", color: "var(--color-text-secondary)", fontSize: 14,
+        }}>
+          <div style={{ fontSize: 24, marginBottom: 8 }}>🍺</div>
+          <div>Momentálně neprobíhá žádná akce.</div>
+          {events.length > 0 && (
+            <div style={{ marginTop: 8, fontSize: 13 }}>
+              Prohlédni si archivní akce výše.
+            </div>
+          )}
         </div>
-        <StatRow
-          leftLabel="Velká nealka"  leftValue={stats.na_large}  leftSymbol="|"
-          rightLabel="Malá nealka"  rightValue={stats.na_small} rightSymbol="×"
-        />
-      </div>
+      )}
 
-      {/* ===== ŽEBŘÍČEK ===== */}
-      {leaderboard.length > 1 && (
+      {/* ===== ARCHIVNÍ BANNER ===== */}
+      {isReadOnly && viewedEvent && (
+        <div style={{
+          marginBottom: 12, padding: "8px 12px", borderRadius: 8, fontSize: 13,
+          background: "rgba(107,114,128,0.15)", color: "var(--color-text-secondary)",
+          textAlign: "center",
+        }}>
+          📁 Archiv: <b>{viewedEvent.name}</b> ({new Date(viewedEvent.date).toLocaleDateString("cs-CZ")})
+        </div>
+      )}
+
+      {/* ===== AKTIVNÍ AKCE – tlačítka ===== */}
+      {!isReadOnly && viewedEvent && (
+        <>
+          <h1 className="h1" style={{ marginBottom: 10 }}>Moje statistika</h1>
+
+          {/* PIVO */}
+          <div style={{ display: "grid", gap: 6 }}>
+            <SectionHeading>🍺 Pivo</SectionHeading>
+            <div style={{ display: "flex", gap: 8 }}>
+              <GlassButton id="gl-beer-large" type="mug"  color="#EA580C" label="Velké" sublabel="0,5 l"
+                initialCount={stats.beer_large} onAdd={() => add("beer", "large")} />
+              <GlassButton id="gl-beer-small" type="stem" color="#F97316" label="Malé"  sublabel="0,3 l"
+                initialCount={stats.beer_small} onAdd={() => add("beer", "small")} />
+            </div>
+            <StatRow
+              leftLabel="Velká piva"  leftValue={stats.beer_large}  leftSymbol="|"
+              rightLabel="Malá piva"  rightValue={stats.beer_small} rightSymbol="×"
+            />
+          </div>
+
+          {/* NEALKO */}
+          <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "10px 0" }} />
+          <div style={{ display: "grid", gap: 6 }}>
+            <SectionHeading>🥤 Nealko</SectionHeading>
+            <div style={{ display: "flex", gap: 8 }}>
+              <GlassButton id="gl-na-large" type="mug"  color="#2563EB" label="Velké" sublabel="0,5 l"
+                initialCount={stats.na_large} onAdd={() => add("na", "large")} />
+              <GlassButton id="gl-na-small" type="stem" color="#3B82F6" label="Malé"  sublabel="0,3 l"
+                initialCount={stats.na_small} onAdd={() => add("na", "small")} />
+            </div>
+            <StatRow
+              leftLabel="Velká nealka"  leftValue={stats.na_large}  leftSymbol="|"
+              rightLabel="Malá nealka"  rightValue={stats.na_small} rightSymbol="×"
+            />
+          </div>
+        </>
+      )}
+
+      {/* ===== ŽEBŘÍČEK – vždy viditelný pokud je vybraná akce ===== */}
+      {viewedEvent && leaderboard.length > 0 && (
         <>
           <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "14px 0 10px" }} />
           <SectionHeading>🏆 Žebříček</SectionHeading>

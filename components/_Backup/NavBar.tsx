@@ -7,10 +7,8 @@ import { useAuth } from "@/lib/useAuth";
 export default function NavBar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  const isPublic =
-    pathname === "/login" ||
-    pathname === "/set-password" ||
-    pathname === "/forgot-password";
+  // veřejné stránky (bez vynucení login)
+  const isPublic = pathname === "/login" || pathname === "/set-password";
 
   const { loading, role, signOut } = useAuth(!isPublic);
 
@@ -36,10 +34,8 @@ export default function NavBar({ children }: { children: React.ReactNode }) {
         }}
       >
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          {role === "admin" && (
-            <Link href="/admin/events">Akce</Link>
-          )}
           <Link href="/">Pivo</Link>
+
           {role === "admin" && (
             <>
               <Link href="/admin">Statistiky</Link>

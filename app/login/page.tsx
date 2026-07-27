@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function LoginPage() {
@@ -21,7 +22,6 @@ export default function LoginPage() {
     router.replace("/");
   };
 
-  // Umožní odeslat formulář klávesou Enter
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") login();
   };
@@ -49,6 +49,12 @@ export default function LoginPage() {
         />
         <button onClick={login}>Přihlásit</button>
         {msg && <div style={{ opacity: 0.85 }}>{msg}</div>}
+        <Link
+          href="/forgot-password"
+          style={{ fontSize: 13, opacity: 0.65, textAlign: "center" }}
+        >
+          Zapomněl jsem heslo
+        </Link>
       </div>
     </main>
   );
