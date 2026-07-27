@@ -9,7 +9,11 @@ type Event = {
   name: string;
   date: string;
   is_active: boolean;
-  created_at: string;
+};
+
+type EditState = {
+  name: string;
+  date: string;
 };
 
 export default function AdminEventsPage() {
@@ -20,6 +24,8 @@ export default function AdminEventsPage() {
   const [name, setName]       = useState("");
   const [date, setDate]       = useState("");
   const [saving, setSaving]   = useState(false);
+  // Editace – user_id → dočasné hodnoty
+  const [editing, setEditing] = useState<Record<string, EditState>>({});
 
   const loadEvents = useCallback(async () => {
     setLoading(true);
@@ -44,44 +50,53 @@ export default function AdminEventsPage() {
   const createEvent = async () => {
     if (!name.trim()) return alert("Zadej název akce.");
     if (!date) return alert("Zadej datum akce.");
-
     setSaving(true);
-
-    // Nová akce je vždy neaktivní – admin ji musí ručně aktivovat
     const { error } = await supabase
       .from("events")
       .insert({ name: name.trim(), date, is_active: false });
-
     if (error) {
       alert("Chyba vytvoření akce: " + error.message);
       setSaving(false);
       return;
     }
-
-    setName("");
-    setDate("");
+    setName(""); setDate("");
     setSaving(false);
     loadEvents();
+  };
+
+  const saveEdit = async (id: string) => {
+    const e = editing[id];
+    if (!e) return;
+    if (!e.name.trim()) return alert("Název nesmí být prázdný.");
+    if (!e.date) return alert("Datum nesmí být prázdné.");
+
+    const { error } = await supabase
+      .from("events")
+      .update({ name: e.name.trim(), date: e.date })
+      .eq("id", id);
+
+    if (error) return alert("Chyba uložení: " + error.message);
+
+    setEditing(prev => { const next = { ...prev }; delete next[id]; return next; });
+    loadEvents();
+  };
+
+  const cancelEdit = (id: string) => {
+    setEditing(prev => { const next = { ...prev }; delete next[id]; return next; });
   };
 
   const activateEvent = async (id: string, eventName: string) => {
     const ok = confirm(`Aktivovat akci "${eventName}"? Tím se deaktivuje aktuálně aktivní akce.`);
     if (!ok) return;
-
-    // Deaktivuj všechny akce
     const { error: deErr } = await supabase
       .from("events")
       .update({ is_active: false })
       .neq("id", "00000000-0000-0000-0000-000000000000");
-
     if (deErr) return alert("Chyba: " + deErr.message);
-
-    // Aktivuj vybranou
     const { error } = await supabase
       .from("events")
       .update({ is_active: true })
       .eq("id", id);
-
     if (error) return alert("Chyba aktivace: " + error.message);
     loadEvents();
   };
@@ -89,12 +104,10 @@ export default function AdminEventsPage() {
   const deactivateEvent = async (eventName: string) => {
     const ok = confirm(`Uzavřít akci "${eventName}"? Uživatelé ji budou vidět jen jako archiv.`);
     if (!ok) return;
-
     const { error } = await supabase
       .from("events")
       .update({ is_active: false })
       .eq("is_active", true);
-
     if (error) return alert("Chyba uzavření: " + error.message);
     loadEvents();
   };
@@ -104,21 +117,11 @@ export default function AdminEventsPage() {
     if (!ok1) return;
     const ok2 = confirm("Opravdu? Tohle nejde vrátit.");
     if (!ok2) return;
-
-    // Smaž záznamy
     const { error: dErr } = await supabase
-      .from("drink_entries")
-      .delete()
-      .eq("event_id", id);
-
+      .from("drink_entries").delete().eq("event_id", id);
     if (dErr) return alert("Chyba mazání záznamů: " + dErr.message);
-
-    // Smaž akci
     const { error } = await supabase
-      .from("events")
-      .delete()
-      .eq("id", id);
-
+      .from("events").delete().eq("id", id);
     if (error) return alert("Chyba mazání akce: " + error.message);
     loadEvents();
   };
@@ -130,10 +133,7 @@ export default function AdminEventsPage() {
       <h1 className="h1">Správa akcí</h1>
 
       {/* Vytvoření nové akce */}
-      <div
-        className="cardTight"
-        style={{ border: "1px solid #e5e5e5", padding: 12, marginTop: 14, display: "grid", gap: 10 }}
-      >
+      <div className="cardTight" style={{ border: "1px solid #e5e5e5", padding: 12, marginTop: 14, display: "grid", gap: 10 }}>
         <b>Vytvořit novou akci</b>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <input
@@ -159,64 +159,104 @@ export default function AdminEventsPage() {
         <b>Existující akce</b>
 
         {loading && <div style={{ marginTop: 10 }}>Načítám…</div>}
-
         {!loading && events.length === 0 && (
           <div style={{ marginTop: 10, opacity: 0.6 }}>Žádné akce.</div>
         )}
 
         {!loading && (
           <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
-            {events.map((e) => (
-              <div
-                key={e.id}
-                className="cardTight"
-                style={{
-                  border: e.is_active ? "2px solid #16a34a" : "1px solid #e5e5e5",
-                  padding: 12, display: "grid", gap: 8,
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 15 }}>
-                      {e.is_active && <span style={{ color: "#16a34a", marginRight: 6 }}>● </span>}
-                      {e.name}
-                    </div>
-                    <div style={{ fontSize: 12, opacity: 0.6, marginTop: 2 }}>
-                      {new Date(e.date).toLocaleDateString("cs-CZ", { day: "numeric", month: "long", year: "numeric" })}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {!e.is_active && (
+            {events.map((e) => {
+              const isEditing = e.id in editing;
+              const editVal = editing[e.id];
+
+              return (
+                <div
+                  key={e.id}
+                  className="cardTight"
+                  style={{
+                    border: e.is_active ? "2px solid #16a34a" : "1px solid #e5e5e5",
+                    padding: 12, display: "grid", gap: 10,
+                  }}
+                >
+                  {/* Název + datum – buď editace nebo zobrazení */}
+                  {isEditing ? (
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <input
+                        value={editVal.name}
+                        onChange={(ev) => setEditing(prev => ({ ...prev, [e.id]: { ...prev[e.id], name: ev.target.value } }))}
+                        style={{ flex: 2, minWidth: 160, fontSize: 14 }}
+                      />
+                      <input
+                        type="date"
+                        value={editVal.date}
+                        onChange={(ev) => setEditing(prev => ({ ...prev, [e.id]: { ...prev[e.id], date: ev.target.value } }))}
+                        style={{ flex: 1, minWidth: 130, fontSize: 14 }}
+                      />
                       <button
-                        style={{ padding: "6px 10px", fontSize: 12, background: "#16a34a" }}
-                        onClick={() => activateEvent(e.id, e.name)}
+                        style={{ padding: "6px 10px", fontSize: 12, flexShrink: 0 }}
+                        onClick={() => saveEdit(e.id)}
                       >
-                        Aktivovat
+                        Uložit
                       </button>
-                    )}
-                    {e.is_active && (
                       <button
-                        style={{ padding: "6px 10px", fontSize: 12, background: "#6b7280" }}
-                        onClick={() => deactivateEvent(e.name)}
+                        style={{ padding: "6px 10px", fontSize: 12, background: "#6b7280", flexShrink: 0 }}
+                        onClick={() => cancelEdit(e.id)}
                       >
-                        Uzavřít
+                        Zrušit
                       </button>
-                    )}
-                    <button
-                      style={{ padding: "6px 10px", fontSize: 12, background: "#dc2626" }}
-                      onClick={() => deleteEvent(e.id, e.name)}
-                    >
-                      Smazat
-                    </button>
-                  </div>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 15 }}>
+                          {e.is_active && <span style={{ color: "#16a34a", marginRight: 6 }}>●</span>}
+                          {e.name}
+                        </div>
+                        <div style={{ fontSize: 12, opacity: 0.6, marginTop: 2 }}>
+                          {new Date(e.date).toLocaleDateString("cs-CZ", { day: "numeric", month: "long", year: "numeric" })}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        <button
+                          style={{ padding: "6px 10px", fontSize: 12, background: "#2563eb" }}
+                          onClick={() => setEditing(prev => ({ ...prev, [e.id]: { name: e.name, date: e.date } }))}
+                        >
+                          Upravit
+                        </button>
+                        {!e.is_active && (
+                          <button
+                            style={{ padding: "6px 10px", fontSize: 12, background: "#16a34a" }}
+                            onClick={() => activateEvent(e.id, e.name)}
+                          >
+                            Aktivovat
+                          </button>
+                        )}
+                        {e.is_active && (
+                          <button
+                            style={{ padding: "6px 10px", fontSize: 12, background: "#6b7280" }}
+                            onClick={() => deactivateEvent(e.name)}
+                          >
+                            Uzavřít
+                          </button>
+                        )}
+                        <button
+                          style={{ padding: "6px 10px", fontSize: 12, background: "#dc2626" }}
+                          onClick={() => deleteEvent(e.id, e.name)}
+                        >
+                          Smazat
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {e.is_active && !isEditing && (
+                    <div style={{ fontSize: 12, color: "#16a34a" }}>
+                      ✓ Aktivní – uživatelé nyní klikají do této akce
+                    </div>
+                  )}
                 </div>
-                {e.is_active && (
-                  <div style={{ fontSize: 12, color: "#16a34a" }}>
-                    ✓ Aktivní – uživatelé nyní klikají do této akce
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

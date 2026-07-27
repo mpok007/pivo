@@ -492,7 +492,7 @@ export default function HomePage() {
       <style>{`@keyframes fadeInGlass { from { opacity: 0; transform: translateY(-6px) scale(0.9); } to { opacity: 1; transform: none; } }`}</style>
 
       {/* ===== PŘEPÍNAČ AKCÍ ===== */}
-      {events.length > 1 && (
+      {events.length > 0 && (
         <div style={{ marginBottom: 14 }}>
           <select
             value={selectedEvent?.id ?? "active"}

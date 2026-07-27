@@ -47,3 +47,4 @@ next-env.d.ts
 /app/admin/users/Backup
 /app/set-password/Backup
 /app/admin/Backup
+/app/admin/events/_Backup
