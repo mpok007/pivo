@@ -358,14 +358,16 @@ function Leaderboard({ entries, myTotal }: { entries: LeaderboardEntry[]; myTota
 
 // ─── Hlavní stránka ───────────────────────────────────────────────────────────
 
+// ─── Hlavní stránka ───────────────────────────────────────────────────────────
+
 export default function HomePage() {
   const { userId } = useAuth(true);
 
-  const [events, setEvents]             = useState<Event[]>([]);
-  const [activeEvent, setActiveEvent]   = useState<Event | null>(null);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null); // null = aktivní
-  const [stats, setStats]               = useState<Stats>(EMPTY_STATS);
-  const [leaderboard, setLeaderboard]   = useState<LeaderboardEntry[]>([]);
+  const [events, setEvents]               = useState<Event[]>([]);
+  const [activeEvent, setActiveEvent]     = useState<Event | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [stats, setStats]                 = useState<Stats>(EMPTY_STATS);
+  const [leaderboard, setLeaderboard]     = useState<LeaderboardEntry[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
 
   const beerMilestoneRef = useRef(0);
@@ -384,19 +386,27 @@ export default function HomePage() {
     setEvents(evts);
     const active = evts.find(e => e.is_active) ?? null;
     setActiveEvent(active);
+
+    // Defaultně vyber aktivní akci, nebo první archivní
+    setSelectedEventId(prev => {
+      if (prev) return prev; // zachovej výběr uživatele
+      if (active) return active.id;
+      if (evts.length > 0) return evts[0].id;
+      return null;
+    });
+
     setLoadingEvents(false);
   }, []);
 
   useEffect(() => { loadEvents(); }, [loadEvents]);
 
-  // Aktuálně zobrazovaná akce (null = aktivní)
-  const viewedEvent = selectedEvent ?? activeEvent;
-
+  // Aktuálně zobrazovaná akce podle selectedEventId
+  const viewedEvent = events.find(e => e.id === selectedEventId) ?? null;
   const isReadOnly = !viewedEvent?.is_active;
 
   // Načti data pro zobrazenou akci
   const load = useCallback(async () => {
-    if (!userId || !viewedEvent) {
+    if (!userId || !selectedEventId) {
       setStats(EMPTY_STATS);
       setLeaderboard([]);
       return;
@@ -407,7 +417,7 @@ export default function HomePage() {
       .from("drink_entries")
       .select("kind,size")
       .eq("user_id", userId)
-      .eq("event_id", viewedEvent.id);
+      .eq("event_id", selectedEventId);
 
     const map: Stats = { ...EMPTY_STATS };
     for (const row of data ?? []) {
@@ -422,7 +432,7 @@ export default function HomePage() {
 
     // Žebříček
     const [{ data: allEntries }, { data: profiles }] = await Promise.all([
-      supabase.from("drink_entries").select("user_id,kind,size").eq("event_id", viewedEvent.id),
+      supabase.from("drink_entries").select("user_id,kind,size").eq("event_id", selectedEventId),
       supabase.from("profiles").select("user_id,email,name"),
     ]);
 
@@ -446,7 +456,7 @@ export default function HomePage() {
       .sort((a, b) => b.total - a.total);
 
     setLeaderboard(entries);
-  }, [userId, viewedEvent]);
+  }, [userId, selectedEventId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -495,34 +505,22 @@ export default function HomePage() {
       {events.length > 0 && (
         <div style={{ marginBottom: 14 }}>
           <select
-            value={selectedEvent?.id ?? "active"}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val === "active") {
-                setSelectedEvent(null);
-              } else {
-                const found = events.find(ev => ev.id === val) ?? null;
-                setSelectedEvent(found);
-              }
-            }}
+            value={selectedEventId ?? ""}
+            onChange={(e) => setSelectedEventId(e.target.value)}
             style={{ width: "100%", fontSize: 14 }}
           >
-            {activeEvent && (
-              <option value="active">🟢 {activeEvent.name} ({new Date(activeEvent.date).toLocaleDateString("cs-CZ")})</option>
-            )}
-            {events
-              .filter(ev => !ev.is_active)
-              .map(ev => (
-                <option key={ev.id} value={ev.id}>
-                  📁 {ev.name} ({new Date(ev.date).toLocaleDateString("cs-CZ")})
-                </option>
-              ))}
+            {events.map(ev => (
+              <option key={ev.id} value={ev.id}>
+                {ev.is_active ? "🟢 " : "📁 "}
+                {ev.name} ({new Date(ev.date).toLocaleDateString("cs-CZ")})
+              </option>
+            ))}
           </select>
         </div>
       )}
 
-      {/* ===== ŽÁDNÁ AKTIVNÍ AKCE ===== */}
-      {!activeEvent && !selectedEvent && (
+      {/* ===== ŽÁDNÁ AKTIVNÍ AKCE a nic není vybráno ===== */}
+      {!selectedEventId && (
         <div style={{
           marginTop: 24, padding: 16, borderRadius: 12,
           background: "var(--color-background-secondary)",
@@ -531,11 +529,6 @@ export default function HomePage() {
         }}>
           <div style={{ fontSize: 24, marginBottom: 8 }}>🍺</div>
           <div>Momentálně neprobíhá žádná akce.</div>
-          {events.length > 0 && (
-            <div style={{ marginTop: 8, fontSize: 13 }}>
-              Prohlédni si archivní akce výše.
-            </div>
-          )}
         </div>
       )}
 
@@ -588,7 +581,7 @@ export default function HomePage() {
         </>
       )}
 
-      {/* ===== ŽEBŘÍČEK – vždy viditelný pokud je vybraná akce ===== */}
+      {/* ===== ŽEBŘÍČEK ===== */}
       {viewedEvent && leaderboard.length > 0 && (
         <>
           <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "14px 0 10px" }} />
