@@ -190,7 +190,7 @@ export default function AdminEventsPage() {
                   }}
                 >
                   {/* Název + datum – buď editace nebo zobrazení */}
-                  {isEditing ? (
+                  {isEditing && e.is_active ? (
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <input
                         value={editVal.name}
@@ -228,27 +228,21 @@ export default function AdminEventsPage() {
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        <button
-                          style={{ padding: "6px 10px", fontSize: 12, background: "#2563eb" }}
-                          onClick={() => setEditing(prev => ({ ...prev, [e.id]: { name: e.name, date: e.date } }))}
-                        >
-                          Upravit
-                        </button>
-                        {!e.is_active && (
-                          <button
-                            style={{ padding: "6px 10px", fontSize: 12, background: "#16a34a" }}
-                            onClick={() => activateEvent(e.id, e.name)}
-                          >
-                            Aktivovat
-                          </button>
-                        )}
                         {e.is_active && (
-                          <button
-                            style={{ padding: "6px 10px", fontSize: 12, background: "#6b7280" }}
-                            onClick={() => deactivateEvent(e.name)}
-                          >
-                            Uzavřít
-                          </button>
+                          <>
+                            <button
+                              style={{ padding: "6px 10px", fontSize: 12, background: "#2563eb" }}
+                              onClick={() => setEditing(prev => ({ ...prev, [e.id]: { name: e.name, date: e.date } }))}
+                            >
+                              Upravit
+                            </button>
+                            <button
+                              style={{ padding: "6px 10px", fontSize: 12, background: "#6b7280" }}
+                              onClick={() => deactivateEvent(e.name)}
+                            >
+                              Uzavřít
+                            </button>
+                          </>
                         )}
                         <button
                           style={{ padding: "6px 10px", fontSize: 12, background: "#dc2626" }}
