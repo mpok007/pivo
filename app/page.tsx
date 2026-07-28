@@ -320,9 +320,11 @@ function Leaderboard({ entries, myTotal }: { entries: LeaderboardEntry[]; myTota
               </div>
             </>
           ) : (
-            <div style={{ fontSize: 14, color: "var(--color-text-secondary)" }}>
-              Zatím jsi nic nepřidal – klikej! 🍺
-            </div>
+            {!isReadOnly && (
+              <div style={{ fontSize: 14, color: "var(--color-text-secondary)" }}>
+                Zatím jsi nic nepřidal – klikej! 🍺
+              </div>
+            )}
           )}
         </div>
       </div>
