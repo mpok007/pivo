@@ -295,7 +295,7 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 
 // ─── Žebříček ─────────────────────────────────────────────────────────────────
 
-function Leaderboard({ entries, myTotal }: { entries: LeaderboardEntry[]; myTotal: number }) {
+function Leaderboard({ entries, myTotal, isActive }: { entries: LeaderboardEntry[]; myTotal: number; isActive: boolean }) {
   if (entries.length === 0) return null;
   const myRank = entries.findIndex(e => e.isMe) + 1;
   const max = entries[0]?.total ?? 1;
@@ -319,7 +319,7 @@ function Leaderboard({ entries, myTotal }: { entries: LeaderboardEntry[]; myTota
                 {myRank}. místo z {entries.length} hráčů
               </div>
             </>
-          ) : !isReadOnly ? (
+          ) : isActive ? (
             <div style={{ fontSize: 14, color: "var(--color-text-secondary)" }}>
               Zatím jsi nic nepřidal – klikej! 🍺
             </div>
@@ -588,7 +588,7 @@ export default function HomePage() {
         <>
           <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "14px 0 10px" }} />
           <SectionHeading>🏆 Žebříček</SectionHeading>
-          <Leaderboard entries={leaderboard} myTotal={myTotal} />
+          <Leaderboard entries={leaderboard} myTotal={myTotal} isActive={!isReadOnly} />
         </>
       )}
     </main>
