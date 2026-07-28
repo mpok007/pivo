@@ -319,13 +319,11 @@ function Leaderboard({ entries, myTotal }: { entries: LeaderboardEntry[]; myTota
                 {myRank}. místo z {entries.length} hráčů
               </div>
             </>
-          ) : (
-            {!isReadOnly && (
-              <div style={{ fontSize: 14, color: "var(--color-text-secondary)" }}>
-                Zatím jsi nic nepřidal – klikej! 🍺
-              </div>
-            )}
-          )}
+          ) : !isReadOnly ? (
+            <div style={{ fontSize: 14, color: "var(--color-text-secondary)" }}>
+              Zatím jsi nic nepřidal – klikej! 🍺
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -435,8 +433,8 @@ export default function HomePage() {
     setStats(map);
     statsRef.current = map;
 
-    beerMilestoneRef.current = Math.floor((map.beer_large + map.beer_small) / 2) % BEER_MILESTONES.length;
-    naMilestoneRef.current   = Math.floor((map.na_large + map.na_small) / 2) % NA_MILESTONES.length;
+    beerMilestoneRef.current = (map.beer_large + map.beer_small) % BEER_MILESTONES.length;
+    naMilestoneRef.current   = (map.na_large + map.na_small) % NA_MILESTONES.length;
 
     // Žebříček
     const [{ data: allEntries }, { data: profiles }] = await Promise.all([
@@ -482,18 +480,14 @@ export default function HomePage() {
 
     if (kind === "beer") {
       const total = statsRef.current.beer_large + statsRef.current.beer_small;
-      if (total % 2 === 0) {
-        const idx = beerMilestoneRef.current % BEER_MILESTONES.length;
+      const idx = beerMilestoneRef.current % BEER_MILESTONES.length;
         beerMilestoneRef.current += 1;
         setTimeout(() => alert(BEER_MILESTONES[idx]), 300);
-      }
     } else {
       const total = statsRef.current.na_large + statsRef.current.na_small;
-      if (total % 2 === 0) {
-        const idx = naMilestoneRef.current % NA_MILESTONES.length;
+      const idx = naMilestoneRef.current % NA_MILESTONES.length;
         naMilestoneRef.current += 1;
         setTimeout(() => alert(NA_MILESTONES[idx]), 300);
-      }
     }
   };
 
