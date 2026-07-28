@@ -51,9 +51,20 @@ export default function AdminEventsPage() {
     if (!name.trim()) return alert("Zadej název akce.");
     if (!date) return alert("Zadej datum akce.");
     setSaving(true);
+
+    const activate = confirm(`Chceš akci "${name.trim()}" rovnou aktivovat?\nTím se deaktivuje aktuálně aktivní akce.`);
+
+    if (activate) {
+      await supabase
+        .from("events")
+        .update({ is_active: false })
+        .neq("id", "00000000-0000-0000-0000-000000000000");
+    }
+
     const { error } = await supabase
       .from("events")
-      .insert({ name: name.trim(), date, is_active: false });
+      .insert({ name: name.trim(), date, is_active: activate });
+
     if (error) {
       alert("Chyba vytvoření akce: " + error.message);
       setSaving(false);
