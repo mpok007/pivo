@@ -42,15 +42,15 @@ function calcLitres(s: Stats) {
   };
 }
 
-function StatRow({ label, count, onMinus }: {
-  label: string; count: number; onMinus: () => Promise<void>;
+function StatRow({ label, count, onMinus, readOnly }: {
+  label: string; count: number; onMinus: () => Promise<void>; readOnly: boolean;
 }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <span>{label}</span>
       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
         <b>{count}</b>
-        <button style={{ padding: "4px 8px" }} onClick={onMinus}>−</button>
+        {!readOnly && <button style={{ padding: "4px 8px" }} onClick={onMinus}>−</button>}
       </div>
     </div>
   );
@@ -193,9 +193,11 @@ export default function AdminPage() {
           <span style={{ fontSize: 13, opacity: 0.85 }}>
             Pivo: <b>{totals.beerL} L</b> • Nealko: <b>{totals.naL} L</b>
           </span>
-          <button onClick={resetAll} style={{ background: "#dc2626" }}>
-            Smazat vše
-          </button>
+          {selectedEvent?.is_active && (
+            <button onClick={resetAll} style={{ background: "#dc2626" }}>
+              Smazat vše
+            </button>
+          )}
         </div>
       </div>
 
@@ -269,23 +271,25 @@ export default function AdminPage() {
                 {isExpanded && (
                   <div style={{ borderTop: "1px solid #e5e5e5", padding: "10px 12px", display: "grid", gap: 8 }}>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 13 }}>
-                      <StatRow label="Pivo 0,5" count={s.beer_large}
+                      <StatRow label="Pivo 0,5" count={s.beer_large} readOnly={!selectedEvent?.is_active}
                         onMinus={async () => { await removeOne(p.user_id, "beer", "large", selectedEventId!); await loadAll(); }} />
-                      <StatRow label="Pivo 0,3" count={s.beer_small}
+                      <StatRow label="Pivo 0,3" count={s.beer_small} readOnly={!selectedEvent?.is_active}
                         onMinus={async () => { await removeOne(p.user_id, "beer", "small", selectedEventId!); await loadAll(); }} />
-                      <StatRow label="Nealko 0,5" count={s.na_large}
+                      <StatRow label="Nealko 0,5" count={s.na_large} readOnly={!selectedEvent?.is_active}
                         onMinus={async () => { await removeOne(p.user_id, "na", "large", selectedEventId!); await loadAll(); }} />
-                      <StatRow label="Nealko 0,3" count={s.na_small}
+                      <StatRow label="Nealko 0,3" count={s.na_small} readOnly={!selectedEvent?.is_active}
                         onMinus={async () => { await removeOne(p.user_id, "na", "small", selectedEventId!); await loadAll(); }} />
                     </div>
-                    <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                      <button
-                        style={{ background: "#dc2626", padding: "6px 12px", fontSize: 13 }}
-                        onClick={() => resetUser(p.user_id, displayName(p))}
-                      >
-                        Smazat vše
-                      </button>
-                    </div>
+                    {selectedEvent?.is_active && (
+                      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                        <button
+                          style={{ background: "#dc2626", padding: "6px 12px", fontSize: 13 }}
+                          onClick={() => resetUser(p.user_id, displayName(p))}
+                        >
+                          Smazat vše
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
