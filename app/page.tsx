@@ -302,24 +302,30 @@ function Leaderboard({ entries, myTotal }: { entries: LeaderboardEntry[]; myTota
 
   return (
     <div style={{ marginTop: 16, display: "grid", gap: 8 }}>
-      {myRank > 0 && (
-        <div style={{
-          background: "var(--color-background-secondary)",
-          border: "0.5px solid var(--color-border-secondary)",
-          borderRadius: 10, padding: "10px 14px",
-          display: "flex", alignItems: "center", gap: 12,
-        }}>
-          <div style={{ fontSize: 24 }}>{RANK_MEDALS[myRank] ?? `${myRank}.`}</div>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 500, color: "var(--color-text-primary)" }}>
-              Máš celkem <b>{myTotal.toFixed(1)} l</b> nápojů
+      <div style={{
+        background: "var(--color-background-secondary)",
+        border: "0.5px solid var(--color-border-secondary)",
+        borderRadius: 10, padding: "10px 14px",
+        display: "flex", alignItems: "center", gap: 12,
+      }}>
+        <div style={{ fontSize: 24 }}>{myRank > 0 ? (RANK_MEDALS[myRank] ?? `${myRank}.`) : "🍺"}</div>
+        <div>
+          {myRank > 0 ? (
+            <>
+              <div style={{ fontSize: 15, fontWeight: 500, color: "var(--color-text-primary)" }}>
+                Máš celkem <b>{myTotal.toFixed(1)} l</b> nápojů
+              </div>
+              <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+                {myRank}. místo z {entries.length} hráčů
+              </div>
+            </>
+          ) : (
+            <div style={{ fontSize: 14, color: "var(--color-text-secondary)" }}>
+              Zatím jsi nic nepřidal – klikej! 🍺
             </div>
-            <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
-              {myRank}. místo z {entries.length} hráčů
-            </div>
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
       {entries.map((e, i) => {
         const rank = i + 1;
