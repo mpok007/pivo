@@ -283,13 +283,13 @@ export default function AdminPage() {
                 {isExpanded && (
                   <div style={{ borderTop: "1px solid #e5e5e5", padding: "10px 12px", display: "grid", gap: 8 }}>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 13 }}>
-                      <StatRow label="Pivo 0,5" count={s.beer_large} readOnly={!selectedEvent?.status === "active"}
+                      <StatRow label="Pivo 0,5" count={s.beer_large} readOnly={selectedEvent?.status !== "active"}
                         onMinus={async () => { await removeOne(p.user_id, "beer", "large", selectedEventId!); await loadAll(); }} />
-                      <StatRow label="Pivo 0,3" count={s.beer_small} readOnly={!selectedEvent?.status === "active"}
+                      <StatRow label="Pivo 0,3" count={s.beer_small} readOnly={selectedEvent?.status !== "active"}
                         onMinus={async () => { await removeOne(p.user_id, "beer", "small", selectedEventId!); await loadAll(); }} />
-                      <StatRow label="Nealko 0,5" count={s.na_large} readOnly={!selectedEvent?.status === "active"}
+                      <StatRow label="Nealko 0,5" count={s.na_large} readOnly={selectedEvent?.status !== "active"}
                         onMinus={async () => { await removeOne(p.user_id, "na", "large", selectedEventId!); await loadAll(); }} />
-                      <StatRow label="Nealko 0,3" count={s.na_small} readOnly={!selectedEvent?.status === "active"}
+                      <StatRow label="Nealko 0,3" count={s.na_small} readOnly={selectedEvent?.status !== "active"}
                         onMinus={async () => { await removeOne(p.user_id, "na", "small", selectedEventId!); await loadAll(); }} />
                     </div>
                     {selectedEvent?.status === "active" && (
