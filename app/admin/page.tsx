@@ -22,7 +22,7 @@ type Event = {
   id: string;
   name: string;
   date: string;
-  is_active: boolean;
+  status: "active" | "archived";
 };
 
 const ML = { small: 300, large: 500 };
@@ -77,7 +77,7 @@ export default function AdminPage() {
     setEvents(evts);
 
     // Defaultně vyber aktivní akci
-    const active = evts.find(e => e.is_active);
+    const active = evts.find(e => e.status === "active");
     if (active) setSelectedEventId(active.id);
     else if (evts.length > 0) setSelectedEventId(evts[0].id);
   }, []);
@@ -193,7 +193,7 @@ export default function AdminPage() {
           <span style={{ fontSize: 13, opacity: 0.85 }}>
             Pivo: <b>{totals.beerL} L</b> • Nealko: <b>{totals.naL} L</b>
           </span>
-          {selectedEvent?.is_active && (
+          {selectedEvent?.status === "active" && (
             <button onClick={resetAll} style={{ background: "#dc2626" }}>
               Smazat vše
             </button>
@@ -212,18 +212,30 @@ export default function AdminPage() {
             }}
             style={{ width: "100%", fontSize: 14 }}
           >
-            {events.map(ev => (
-              <option key={ev.id} value={ev.id}>
-                {ev.is_active ? "🟢 " : "📁 "}
-                {ev.name} ({new Date(ev.date).toLocaleDateString("cs-CZ")})
-              </option>
-            ))}
+            {events.filter(e => e.status === "active").length > 0 && (
+              <optgroup label="🟢 Aktivní akce">
+                {events.filter(e => e.status === "active").map(ev => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.name} ({new Date(ev.date).toLocaleDateString("cs-CZ")})
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {events.filter(e => e.status === "archived").length > 0 && (
+              <optgroup label="📁 Archiv">
+                {events.filter(e => e.status === "archived").map(ev => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.name} ({new Date(ev.date).toLocaleDateString("cs-CZ")})
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </select>
         </div>
       )}
 
       {/* Archivní banner */}
-      {selectedEvent && !selectedEvent.is_active && (
+      {selectedEvent && selectedEvent.status !== "active" && (
         <div style={{
           marginTop: 8, padding: "6px 12px", borderRadius: 8, fontSize: 12,
           background: "rgba(107,114,128,0.15)", color: "var(--color-text-secondary)",
@@ -271,16 +283,16 @@ export default function AdminPage() {
                 {isExpanded && (
                   <div style={{ borderTop: "1px solid #e5e5e5", padding: "10px 12px", display: "grid", gap: 8 }}>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 13 }}>
-                      <StatRow label="Pivo 0,5" count={s.beer_large} readOnly={!selectedEvent?.is_active}
+                      <StatRow label="Pivo 0,5" count={s.beer_large} readOnly={!selectedEvent?.status === "active"}
                         onMinus={async () => { await removeOne(p.user_id, "beer", "large", selectedEventId!); await loadAll(); }} />
-                      <StatRow label="Pivo 0,3" count={s.beer_small} readOnly={!selectedEvent?.is_active}
+                      <StatRow label="Pivo 0,3" count={s.beer_small} readOnly={!selectedEvent?.status === "active"}
                         onMinus={async () => { await removeOne(p.user_id, "beer", "small", selectedEventId!); await loadAll(); }} />
-                      <StatRow label="Nealko 0,5" count={s.na_large} readOnly={!selectedEvent?.is_active}
+                      <StatRow label="Nealko 0,5" count={s.na_large} readOnly={!selectedEvent?.status === "active"}
                         onMinus={async () => { await removeOne(p.user_id, "na", "large", selectedEventId!); await loadAll(); }} />
-                      <StatRow label="Nealko 0,3" count={s.na_small} readOnly={!selectedEvent?.is_active}
+                      <StatRow label="Nealko 0,3" count={s.na_small} readOnly={!selectedEvent?.status === "active"}
                         onMinus={async () => { await removeOne(p.user_id, "na", "small", selectedEventId!); await loadAll(); }} />
                     </div>
-                    {selectedEvent?.is_active && (
+                    {selectedEvent?.status === "active" && (
                       <div style={{ display: "flex", justifyContent: "flex-end" }}>
                         <button
                           style={{ background: "#dc2626", padding: "6px 12px", fontSize: 13 }}

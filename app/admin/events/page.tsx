@@ -8,7 +8,7 @@ type Event = {
   id: string;
   name: string;
   date: string;
-  is_active: boolean;
+  status: "active" | "archived";
 };
 
 type EditState = {
@@ -24,7 +24,6 @@ export default function AdminEventsPage() {
   const [name, setName]       = useState("");
   const [date, setDate]       = useState("");
   const [saving, setSaving]   = useState(false);
-  // Editace – user_id → dočasné hodnoty
   const [editing, setEditing] = useState<Record<string, EditState>>({});
 
   const loadEvents = useCallback(async () => {
@@ -52,18 +51,9 @@ export default function AdminEventsPage() {
     if (!date) return alert("Zadej datum akce.");
     setSaving(true);
 
-    const activate = confirm(`Chceš akci "${name.trim()}" rovnou aktivovat?\nTím se deaktivuje aktuálně aktivní akce.`);
-
-    if (activate) {
-      await supabase
-        .from("events")
-        .update({ is_active: false })
-        .neq("id", "00000000-0000-0000-0000-000000000000");
-    }
-
     const { error } = await supabase
       .from("events")
-      .insert({ name: name.trim(), date, is_active: activate });
+      .insert({ name: name.trim(), date, status: "active" });
 
     if (error) {
       alert("Chyba vytvoření akce: " + error.message);
@@ -87,7 +77,6 @@ export default function AdminEventsPage() {
       .eq("id", id);
 
     if (error) return alert("Chyba uložení: " + error.message);
-
     setEditing(prev => { const next = { ...prev }; delete next[id]; return next; });
     loadEvents();
   };
@@ -96,30 +85,16 @@ export default function AdminEventsPage() {
     setEditing(prev => { const next = { ...prev }; delete next[id]; return next; });
   };
 
-  const activateEvent = async (id: string, eventName: string) => {
-    const ok = confirm(`Aktivovat akci "${eventName}"? Tím se deaktivuje aktuálně aktivní akce.`);
+  const archiveEvent = async (id: string, eventName: string) => {
+    const ok = confirm(`Archivovat akci "${eventName}"? Stane se jen pro čtení a nelze to vrátit.`);
     if (!ok) return;
-    const { error: deErr } = await supabase
-      .from("events")
-      .update({ is_active: false })
-      .neq("id", "00000000-0000-0000-0000-000000000000");
-    if (deErr) return alert("Chyba: " + deErr.message);
-    const { error } = await supabase
-      .from("events")
-      .update({ is_active: true })
-      .eq("id", id);
-    if (error) return alert("Chyba aktivace: " + error.message);
-    loadEvents();
-  };
 
-  const deactivateEvent = async (eventName: string) => {
-    const ok = confirm(`Uzavřít akci "${eventName}"? Uživatelé ji budou vidět jen jako archiv.`);
-    if (!ok) return;
     const { error } = await supabase
       .from("events")
-      .update({ is_active: false })
-      .eq("is_active", true);
-    if (error) return alert("Chyba uzavření: " + error.message);
+      .update({ status: "archived" })
+      .eq("id", id);
+
+    if (error) return alert("Chyba archivace: " + error.message);
     loadEvents();
   };
 
@@ -128,16 +103,99 @@ export default function AdminEventsPage() {
     if (!ok1) return;
     const ok2 = confirm("Opravdu? Tohle nejde vrátit.");
     if (!ok2) return;
+
     const { error: dErr } = await supabase
       .from("drink_entries").delete().eq("event_id", id);
     if (dErr) return alert("Chyba mazání záznamů: " + dErr.message);
+
     const { error } = await supabase
       .from("events").delete().eq("id", id);
     if (error) return alert("Chyba mazání akce: " + error.message);
     loadEvents();
   };
 
-  const activeEvent = events.find(e => e.is_active);
+  const activeEvents   = events.filter(e => e.status === "active");
+  const archivedEvents = events.filter(e => e.status === "archived");
+
+  const renderEvent = (e: Event) => {
+    const isEditing = e.id in editing;
+    const editVal   = editing[e.id];
+    const isActive  = e.status === "active";
+
+    return (
+      <div
+        key={e.id}
+        className="cardTight"
+        style={{
+          border: isActive ? "2px solid #16a34a" : "1px solid #e5e5e5",
+          padding: 12, display: "grid", gap: 10,
+        }}
+      >
+        {isEditing && isActive ? (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <input
+              value={editVal.name}
+              onChange={(ev) => setEditing(prev => ({ ...prev, [e.id]: { ...prev[e.id], name: ev.target.value } }))}
+              style={{ flex: 2, minWidth: 160, fontSize: 14 }}
+            />
+            <input
+              type="date"
+              value={editVal.date}
+              onChange={(ev) => setEditing(prev => ({ ...prev, [e.id]: { ...prev[e.id], date: ev.target.value } }))}
+              style={{ flex: 1, minWidth: 130, fontSize: 14 }}
+            />
+            <button style={{ padding: "6px 10px", fontSize: 12, flexShrink: 0 }} onClick={() => saveEdit(e.id)}>
+              Uložit
+            </button>
+            <button style={{ padding: "6px 10px", fontSize: 12, background: "#6b7280", flexShrink: 0 }} onClick={() => cancelEdit(e.id)}>
+              Zrušit
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>
+                {isActive && <span style={{ color: "#16a34a", marginRight: 6 }}>●</span>}
+                {e.name}
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.6, marginTop: 2 }}>
+                {new Date(e.date).toLocaleDateString("cs-CZ", { day: "numeric", month: "long", year: "numeric" })}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {isActive && (
+                <>
+                  <button
+                    style={{ padding: "6px 10px", fontSize: 12, background: "#2563eb" }}
+                    onClick={() => setEditing(prev => ({ ...prev, [e.id]: { name: e.name, date: e.date } }))}
+                  >
+                    Upravit
+                  </button>
+                  <button
+                    style={{ padding: "6px 10px", fontSize: 12, background: "#6b7280" }}
+                    onClick={() => archiveEvent(e.id, e.name)}
+                  >
+                    Archivovat
+                  </button>
+                </>
+              )}
+              <button
+                style={{ padding: "6px 10px", fontSize: 12, background: "#dc2626" }}
+                onClick={() => deleteEvent(e.id, e.name)}
+              >
+                Smazat
+              </button>
+            </div>
+          </div>
+        )}
+        {isActive && !isEditing && (
+          <div style={{ fontSize: 12, color: "#16a34a" }}>
+            ✓ Aktivní – uživatelé mohou přidávat záznamy
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <main>
@@ -163,112 +221,34 @@ export default function AdminEventsPage() {
             {saving ? "Ukládám…" : "Vytvořit"}
           </button>
         </div>
+        <div style={{ fontSize: 12, opacity: 0.6 }}>
+          Nová akce bude automaticky aktivní – uživatelé do ní mohou okamžitě přidávat záznamy.
+        </div>
       </div>
 
-      {/* Seznam akcí */}
+      {/* Aktivní akce */}
       <div style={{ marginTop: 24 }}>
-        <b>Existující akce</b>
-
+        <b>🟢 Aktivní akce</b>
         {loading && <div style={{ marginTop: 10 }}>Načítám…</div>}
-        {!loading && events.length === 0 && (
-          <div style={{ marginTop: 10, opacity: 0.6 }}>Žádné akce.</div>
+        {!loading && activeEvents.length === 0 && (
+          <div style={{ marginTop: 10, padding: 12, borderRadius: 10, background: "rgba(234,88,12,0.1)", fontSize: 13, color: "#EA580C" }}>
+            ⚠️ Žádná aktivní akce. Uživatelé vidí jen archiv.
+          </div>
         )}
-
         {!loading && (
           <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
-            {events.map((e) => {
-              const isEditing = e.id in editing;
-              const editVal = editing[e.id];
-
-              return (
-                <div
-                  key={e.id}
-                  className="cardTight"
-                  style={{
-                    border: e.is_active ? "2px solid #16a34a" : "1px solid #e5e5e5",
-                    padding: 12, display: "grid", gap: 10,
-                  }}
-                >
-                  {/* Název + datum – buď editace nebo zobrazení */}
-                  {isEditing && e.is_active ? (
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <input
-                        value={editVal.name}
-                        onChange={(ev) => setEditing(prev => ({ ...prev, [e.id]: { ...prev[e.id], name: ev.target.value } }))}
-                        style={{ flex: 2, minWidth: 160, fontSize: 14 }}
-                      />
-                      <input
-                        type="date"
-                        value={editVal.date}
-                        onChange={(ev) => setEditing(prev => ({ ...prev, [e.id]: { ...prev[e.id], date: ev.target.value } }))}
-                        style={{ flex: 1, minWidth: 130, fontSize: 14 }}
-                      />
-                      <button
-                        style={{ padding: "6px 10px", fontSize: 12, flexShrink: 0 }}
-                        onClick={() => saveEdit(e.id)}
-                      >
-                        Uložit
-                      </button>
-                      <button
-                        style={{ padding: "6px 10px", fontSize: 12, background: "#6b7280", flexShrink: 0 }}
-                        onClick={() => cancelEdit(e.id)}
-                      >
-                        Zrušit
-                      </button>
-                    </div>
-                  ) : (
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 15 }}>
-                          {e.is_active && <span style={{ color: "#16a34a", marginRight: 6 }}>●</span>}
-                          {e.name}
-                        </div>
-                        <div style={{ fontSize: 12, opacity: 0.6, marginTop: 2 }}>
-                          {new Date(e.date).toLocaleDateString("cs-CZ", { day: "numeric", month: "long", year: "numeric" })}
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        {e.is_active && (
-                          <>
-                            <button
-                              style={{ padding: "6px 10px", fontSize: 12, background: "#2563eb" }}
-                              onClick={() => setEditing(prev => ({ ...prev, [e.id]: { name: e.name, date: e.date } }))}
-                            >
-                              Upravit
-                            </button>
-                            <button
-                              style={{ padding: "6px 10px", fontSize: 12, background: "#6b7280" }}
-                              onClick={() => deactivateEvent(e.name)}
-                            >
-                              Uzavřít
-                            </button>
-                          </>
-                        )}
-                        <button
-                          style={{ padding: "6px 10px", fontSize: 12, background: "#dc2626" }}
-                          onClick={() => deleteEvent(e.id, e.name)}
-                        >
-                          Smazat
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {e.is_active && !isEditing && (
-                    <div style={{ fontSize: 12, color: "#16a34a" }}>
-                      ✓ Aktivní – uživatelé nyní klikají do této akce
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {activeEvents.map(renderEvent)}
           </div>
         )}
       </div>
 
-      {!activeEvent && !loading && (
-        <div style={{ marginTop: 16, padding: 12, borderRadius: 10, background: "rgba(234,88,12,0.1)", fontSize: 13, color: "#EA580C" }}>
-          ⚠️ Žádná akce není aktivní. Uživatelé vidí jen archiv.
+      {/* Archivní akce */}
+      {!loading && archivedEvents.length > 0 && (
+        <div style={{ marginTop: 24 }}>
+          <b>📁 Archiv</b>
+          <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+            {archivedEvents.map(renderEvent)}
+          </div>
         </div>
       )}
     </main>

@@ -22,7 +22,7 @@ type Event = {
   id: string;
   name: string;
   date: string;
-  is_active: boolean;
+  status: "active" | "archived";
 };
 
 const EMPTY_STATS: Stats = {
@@ -370,7 +370,7 @@ export default function HomePage() {
   const { userId } = useAuth(true);
 
   const [events, setEvents]               = useState<Event[]>([]);
-  const [activeEvent, setActiveEvent]     = useState<Event | null>(null);
+  const [activeEvents, setActiveEvents]   = useState<Event[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [stats, setStats]                 = useState<Stats>(EMPTY_STATS);
   const [leaderboard, setLeaderboard]     = useState<LeaderboardEntry[]>([]);
@@ -390,13 +390,13 @@ export default function HomePage() {
 
     const evts = data ?? [];
     setEvents(evts);
-    const active = evts.find(e => e.is_active) ?? null;
-    setActiveEvent(active);
+    const actives = evts.filter(e => e.status === "active");
+    setActiveEvents(actives);
 
-    // Defaultně vyber aktivní akci, nebo první archivní
+    // Defaultně vyber první aktivní akci, nebo první archivní
     setSelectedEventId(prev => {
-      if (prev) return prev; // zachovej výběr uživatele
-      if (active) return active.id;
+      if (prev) return prev;
+      if (actives.length > 0) return actives[0].id;
       if (evts.length > 0) return evts[0].id;
       return null;
     });
@@ -408,7 +408,7 @@ export default function HomePage() {
 
   // Aktuálně zobrazovaná akce podle selectedEventId
   const viewedEvent = events.find(e => e.id === selectedEventId) ?? null;
-  const isReadOnly = !viewedEvent?.is_active;
+  const isReadOnly = viewedEvent?.status !== "active";
 
   // Načti data pro zobrazenou akci
   const load = useCallback(async () => {
@@ -467,14 +467,14 @@ export default function HomePage() {
   useEffect(() => { load(); }, [load]);
 
   const add = async (kind: "beer" | "na", size: "small" | "large") => {
-    if (!activeEvent) return;
+    if (!viewedEvent || viewedEvent.status !== "active") return;
     const ok = confirm("Opravdu přidat záznam?");
     if (!ok) return;
     await supabase.from("drink_entries").insert({
       user_id: userId,
       kind,
       size,
-      event_id: activeEvent.id,
+      event_id: viewedEvent.id,
     });
     await load();
 
@@ -511,12 +511,24 @@ export default function HomePage() {
             onChange={(e) => setSelectedEventId(e.target.value)}
             style={{ width: "100%", fontSize: 14 }}
           >
-            {events.map(ev => (
-              <option key={ev.id} value={ev.id}>
-                {ev.is_active ? "🟢 " : "📁 "}
-                {ev.name} ({new Date(ev.date).toLocaleDateString("cs-CZ")})
-              </option>
-            ))}
+            {activeEvents.length > 0 && (
+              <optgroup label="🟢 Aktivní akce">
+                {activeEvents.map(ev => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.name} ({new Date(ev.date).toLocaleDateString("cs-CZ")})
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {events.filter(e => e.status === "archived").length > 0 && (
+              <optgroup label="📁 Archiv">
+                {events.filter(e => e.status === "archived").map(ev => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.name} ({new Date(ev.date).toLocaleDateString("cs-CZ")})
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </select>
         </div>
       )}
